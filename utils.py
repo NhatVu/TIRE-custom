@@ -66,6 +66,8 @@ def cp_to_timestamps(changepoints, tolerance, length_ts):
         list where each entry is a list with the windows affected by a change point
     """
     
+    # if change points are consecutive, agg them into one list.
+    # Ex [[79,80,81], [179], [200]]
     locations_cp = [idx for idx, val in enumerate(changepoints) if val > 0.0]
     
     output = []
@@ -143,6 +145,7 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
     
     peaks = find_peaks(distances)[0]
     peaks_prom = peak_prominences(distances,peaks)[0]
+
     peaks_prom_all = np.array(new_peak_prominences(distances)[0])
     distances = np.array(distances)
         
@@ -172,11 +175,13 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
                 
             ranges[i] = [left,right]
         
-        quantiles = np.quantile(peaks_prom,np.array(range(51))/50)
+        # quantiles is threshold t in paper page 5
+        quantiles = np.quantile(peaks_prom, np.array(range(21))/ 20)
         quantiles_set = set(quantiles)
         quantiles_set.add(0.)
         quantiles = list(quantiles_set)
         quantiles.sort()
+        print(f'quantiles: {quantiles}')
         
         nr_quant = len(quantiles)
         
@@ -188,7 +193,7 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
                 
                 bp_nbhd = peaks_prom_all[max(bps[j][0]-tol_dist,ranges[j][0]):min(bps[j][-1]+tol_dist+1,ranges[j][1])]
                 
-                if max(bp_nbhd) >= quantiles[i]:
+                if len(bp_nbhd) > 0 and max(bp_nbhd) >= quantiles[i]:
                     ncr[i] += 1
                             
             indices_all = np.array(range(len(distances)))
@@ -197,6 +202,8 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
                     
         ncr = np.array(ncr)
         nal = np.array(nal)
+        print(f'ncr: {ncr}')
+        print(f'nal: {nal}')
         
         ngt = nr_bps
         
@@ -279,7 +286,7 @@ def calc_fft(windows, nfft=30, norm_mode="timeseries"):
     
     return windows_fft
 
-def plot_cp(distances, parameters, window_size, time_start, time_stop, plot_prominences=False):
+def plot_cp(distances, parameters, window_size, time_start, time_stop, plot_prominences=False, breakpoints=None):
     """
     Plots dissimilarity measure with ground-truth changepoints
     
@@ -295,8 +302,10 @@ def plot_cp(distances, parameters, window_size, time_start, time_stop, plot_prom
         plot of dissimilarity measure with ground-truth changepoints
     
     """
-    
-    breakpoints = parameters_to_cps(parameters,window_size)
+    print('CHANGED !!!!!!!!!!!!!!!!!!!')
+    # this is ground truth
+    # however, this code is not produce ground truth. It assumes ground-truth for example purpose
+    # breakpoints = parameters_to_cps(parameters,window_size)
 
 
     length_ts = np.size(breakpoints)
@@ -307,10 +316,10 @@ def plot_cp(distances, parameters, window_size, time_start, time_stop, plot_prom
     z = distances
     y = breakpoints#[:,0]
 
-    peaks = find_peaks(distances)[0]
+    peaks = find_peaks(distances)[0] # just find peak based on neighbour point
     peaks_prom = peak_prominences(distances,peaks)[0]
     peaks_prom_all = np.array(new_peak_prominences(distances)[0])
-
+    print(f'peaks prom all. shape: {peaks_prom_all.shape}, values: {peaks_prom_all[:4]}')
     fig, ax = plt.subplots(figsize=(15,4))
     ax.plot(x,z,color="black")
     
@@ -322,23 +331,23 @@ def plot_cp(distances, parameters, window_size, time_start, time_stop, plot_prom
     plt.xlabel("time")
     plt.ylabel("dissimilarity")
 
-    ax.plot(peaks,distances[peaks],'ko')
+    ax.plot(peaks,distances[peaks],'go') # peak point
 
     height_line = 1
 
-    ax.fill_between(x, 0, height_line, where=y > 0.0001,
-                color='red', alpha=0.2, transform=ax.get_xaxis_transform())
-    ax.fill_between(x, 0, height_line, where=y > 0.25,
-                color='red', alpha=0.2, transform=ax.get_xaxis_transform())
-    ax.fill_between(x, 0, height_line, where=y > 0.5,
-                color='red', alpha=0.2, transform=ax.get_xaxis_transform())
-    ax.fill_between(x, 0, height_line, where=y > 0.75,
-                color='red', alpha=0.2, transform=ax.get_xaxis_transform())
+    # ax.fill_between(x, 0, height_line, where=y > 0.0001,
+    #             color='red', alpha=0.2, transform=ax.get_xaxis_transform())
+    # ax.fill_between(x, 0, height_line, where=y > 0.25,
+    #             color='red', alpha=0.2, transform=ax.get_xaxis_transform())
+    # ax.fill_between(x, 0, height_line, where=y > 0.5,
+    #             color='red', alpha=0.2, transform=ax.get_xaxis_transform())
+    # ax.fill_between(x, 0, height_line, where=y > 0.75,
+    #             color='red', alpha=0.2, transform=ax.get_xaxis_transform())
     ax.fill_between(x, 0, height_line, where=y > 0.9,
                 color='red', alpha=0.2, transform=ax.get_xaxis_transform())
     plt.show()
     
-def get_auc(distances, tol_distances, parameters, window_size):
+def get_auc(distances, tol_distances, parameters, window_size, breakpoints):
     """
     Calculation of AUC for toleration distances in range(TD_start, TD_stop, TD_step) + plot of corresponding ROC curves
     
@@ -347,6 +356,7 @@ def get_auc(distances, tol_distances, parameters, window_size):
         tol_distances: list of different toleration distances
         parameters: array parameters used to generate time series, size Tx(nr. of parameters)
         window_size: window size used for CPD
+        breakpoints: change point ground truth. 
         
     Returns:
         list of AUCs for every toleration distance
@@ -355,9 +365,11 @@ def get_auc(distances, tol_distances, parameters, window_size):
     breakpoints = parameters_to_cps(parameters,window_size)
 
     legend = []
+    # neighbour breakpoint will be aggregate into the same timestamp
     list_of_lists = cp_to_timestamps(breakpoints,0,np.size(breakpoints))
     auc = []
 
+    # what is tolerence distance?
     for i in tol_distances:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

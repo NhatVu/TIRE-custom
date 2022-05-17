@@ -74,7 +74,7 @@ def create_parallel_aes(window_size_per_ae,
         squared_diff = K.square(x-x_decoded)
         mse_loss = tf.reduce_mean(squared_diff)
         
-        square_diff2 = K.square(z_shared[:,1:,:]-z_shared[:,:nr_ae-1,:])
+        square_diff2 = K.square(z_shared[:,1:,:]-z_shared[:,:nr_ae-1,:]) # có thể lỗi ở chỗ này nếu nr_ae > 2
         shared_loss = tf.reduce_mean(square_diff2)
         
         return mse_loss + loss_weight*shared_loss
@@ -83,6 +83,7 @@ def create_parallel_aes(window_size_per_ae,
     mse_loss = tf.reduce_mean(squared_diff)
         
     square_diff2 = K.square(z_shared[:,1:,:]-z_shared[:,:nr_ae-1,:])
+    print(f'nr_ae: {nr_ae}, first shape: {z_shared[:,1:,:].shape}, second_shape: {z_shared[:,:nr_ae-1,:].shape}')
     shared_loss = tf.reduce_mean(square_diff2)
     total_loss = mse_loss + loss_weight*shared_loss
     
@@ -107,7 +108,7 @@ def prepare_input_paes(windows,nr_ae):
         new_windows.append(windows[i:nr_windows-nr_ae+1+i])
     return np.transpose(new_windows,(1,0,2))
 
-def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, loss_weight=1, nr_epochs=200, nr_patience=200):
+def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, loss_weight=1, nr_epochs=200, nr_patience=10):
     """
     Creates and trains an autoencoder with a Time-Invariant REpresentation (TIRE)
     
@@ -173,10 +174,13 @@ def smoothened_dissimilarity_measures(encoded_windows, encoded_windows_fft, doma
         beta = np.quantile(utils.distance(encoded_windows, window_size), 0.95)
         alpha = np.quantile(utils.distance(encoded_windows_fft, window_size), 0.95)
         encoded_windows_both = np.concatenate((encoded_windows*alpha, encoded_windows_fft*beta),axis=1)
-    
+    print(f'encoded_windows_both shape before: {encoded_windows_both.shape}')
     encoded_windows_both = utils.matched_filter(encoded_windows_both, window_size)
+    print(f'encoded_windows_both shape: {encoded_windows_both.shape}')
     distances = utils.distance(encoded_windows_both, window_size)
+    print(f'distances shape: {distances.shape}')
     distances = utils.matched_filter(distances, window_size)
+    print(f'distances shape filter: {distances.shape}')
     
     return distances
 
