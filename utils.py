@@ -1,3 +1,4 @@
+from statistics import quantiles
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import backend as K
@@ -181,7 +182,7 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
         quantiles_set.add(0.)
         quantiles = list(quantiles_set)
         quantiles.sort()
-        print(f'quantiles: {quantiles}')
+        # print(f'quantiles: {quantiles}')
         
         nr_quant = len(quantiles)
         
@@ -202,8 +203,8 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
                     
         ncr = np.array(ncr)
         nal = np.array(nal)
-        print(f'ncr: {ncr}')
-        print(f'nal: {nal}')
+        # print(f'ncr: {ncr}')
+        # print(f'nal: {nal}')
         
         ngt = nr_bps
         
@@ -218,6 +219,93 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
         tpr.insert(len(tpr),0.0)
         fpr.insert(len(fpr),0.0)
     return tpr, fpr
+
+def precision_recall_f1(bps,distances, method="prominence",tol_dist=0):
+    """Calculation of Precision, Recall and F1
+    
+    Args:
+        bps: list of breakpoints (change points)
+        distances: list of dissimilarity scores
+        method: prominence- or height-based change point score
+        tol_dist: toleration distance
+        
+    Returns:
+        list of TPRs and FPRs for different values of the detection threshold
+    """
+    
+    peaks = find_peaks(distances)[0]
+    peaks_prom = peak_prominences(distances,peaks)[0]
+
+    peaks_prom_all = np.array(new_peak_prominences(distances)[0])
+    distances = np.array(distances)
+        
+    bps = np.array(bps)
+        
+    if method == "prominence":
+        
+        nr_bps = len(bps)
+        
+        index_closest_peak = [0]*nr_bps
+        bp_detected = [0]*nr_bps
+        
+        #determine for each bp the allowed range s.t. alarm is closest to bp
+        
+        ranges = [0] * nr_bps
+        
+        for i in range(nr_bps):
+            
+            if i==0:
+                left = 0
+            else:
+                left = right
+            if i==(nr_bps-1):
+                right = len(distances)
+            else:
+                right = int((bps[i][-1]+bps[i+1][0])/2)+1
+                
+            ranges[i] = [left,right]
+        
+        # quantiles is threshold t in paper page 5
+        quantiles = np.quantile(peaks_prom, np.array(range(21))/ 20)
+        quantiles_set = set(quantiles)
+        quantiles_set.add(0.)
+        quantiles = list(quantiles_set)
+        quantiles.sort()
+        # print(f'quantiles: {quantiles}')
+        
+        nr_quant = len(quantiles)
+        
+        ncr = [0.]*nr_quant
+        nal = [0.]*nr_quant
+        
+        
+        for i in range(nr_quant):
+            for j in range(nr_bps):
+                
+                bp_nbhd = peaks_prom_all[max(bps[j][0]-tol_dist,ranges[j][0]):min(bps[j][-1]+tol_dist+1,ranges[j][1])]
+                
+                if len(bp_nbhd) > 0 and max(bp_nbhd) >= quantiles[i]:
+                    ncr[i] += 1
+                            
+            indices_all = np.array(range(len(distances)))
+            heights_alarms = distances[peaks_prom_all>=quantiles[i]]
+            nal[i] = len(heights_alarms)
+                    
+        ncr = np.array(ncr)
+        nal = np.array(nal)
+  
+        
+        ngt = nr_bps
+        
+        precision = ncr/ngt
+        recall = ncr/nal
+        # print(f'precision: {precision}')
+        # print(f'recall: {recall}')
+        f1 = 2 * precision * recall / (precision + recall)
+        # print(f'f1: {f1}')
+        
+       
+    return precision, recall, f1, quantiles
 
 def matched_filter(signal, window_size):
     """
@@ -286,7 +374,7 @@ def calc_fft(windows, nfft=30, norm_mode="timeseries"):
     
     return windows_fft
 
-def plot_cp(distances, parameters, window_size, time_start, time_stop, plot_prominences=False, breakpoints=None):
+def plot_cp(distances, time_start, time_stop, plot_prominences=False, breakpoints=None):
     """
     Plots dissimilarity measure with ground-truth changepoints
     
@@ -319,7 +407,7 @@ def plot_cp(distances, parameters, window_size, time_start, time_stop, plot_prom
     peaks = find_peaks(distances)[0] # just find peak based on neighbour point
     peaks_prom = peak_prominences(distances,peaks)[0]
     peaks_prom_all = np.array(new_peak_prominences(distances)[0])
-    print(f'peaks prom all. shape: {peaks_prom_all.shape}, values: {peaks_prom_all[:4]}')
+    # print(f'peaks prom all. shape: {peaks_prom_all.shape}, values: {peaks_prom_all[:4]}')
     fig, ax = plt.subplots(figsize=(15,4))
     ax.plot(x,z,color="black")
     
@@ -347,7 +435,7 @@ def plot_cp(distances, parameters, window_size, time_start, time_stop, plot_prom
                 color='red', alpha=0.2, transform=ax.get_xaxis_transform())
     plt.show()
     
-def get_auc(distances, tol_distances, parameters, window_size, breakpoints):
+def get_auc(distances, tol_distances, breakpoints):
     """
     Calculation of AUC for toleration distances in range(TD_start, TD_stop, TD_step) + plot of corresponding ROC curves
     
@@ -362,7 +450,7 @@ def get_auc(distances, tol_distances, parameters, window_size, breakpoints):
         list of AUCs for every toleration distance
     """
     
-    breakpoints = parameters_to_cps(parameters,window_size)
+    # breakpoints = parameters_to_cps(parameters,window_size)
 
     legend = []
     # neighbour breakpoint will be aggregate into the same timestamp
@@ -394,3 +482,40 @@ def get_auc(distances, tol_distances, parameters, window_size, breakpoints):
     plt.show()
     
     return auc
+
+def get_F1(distances, tol_distances, breakpoints):
+    """
+    Calculation of AUC for toleration distances in range(TD_start, TD_stop, TD_step) + plot of corresponding ROC curves
+    
+    Args:
+        distances: dissimilarity measures
+        tol_distances: list of different toleration distances
+        parameters: array parameters used to generate time series, size Tx(nr. of parameters)
+        window_size: window size used for CPD
+        breakpoints: change point ground truth. 
+        
+    Returns:
+        list of AUCs for every toleration distance
+    """
+    
+    # breakpoints = parameters_to_cps(parameters,window_size)
+
+    legend = []
+    # neighbour breakpoint will be aggregate into the same timestamp
+    list_of_lists = cp_to_timestamps(breakpoints,0,np.size(breakpoints))
+    auc = []
+
+    # what is tolerence distance?
+    for i in tol_distances:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            precision, recall, f1, quantiles = precision_recall_f1(list_of_lists,distances, "prominence",i)
+            plt.plot(quantiles, f1)
+            legend.append("tol. dist. = "+str(i))
+    
+    plt.xlabel("Quantile threshold")
+    plt.ylabel("F1")
+    plt.legend(legend)
+    plt.show()
+    return None
+
