@@ -177,7 +177,7 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
             ranges[i] = [left,right]
         
         # quantiles is threshold t in paper page 5
-        quantiles = np.quantile(peaks_prom, np.array(range(21))/ 20)
+        quantiles = np.quantile(peaks_prom, np.array(range(51))/ 50)
         quantiles_set = set(quantiles)
         quantiles_set.add(0.)
         quantiles = list(quantiles_set)
@@ -205,7 +205,11 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
         nal = np.array(nal)
         # print(f'ncr: {ncr}')
         # print(f'nal: {nal}')
-        
+        '''
+        NGT denotes the number of ground-truth change points, 
+        NAL denotes the number of all detection alarms by the algorithm and 
+        NCR is the number of times a ground-truth change point is correctly detected.
+        '''
         ngt = nr_bps
         
         tpr = ncr/ngt
@@ -431,7 +435,7 @@ def plot_cp(distances, time_start, time_stop, plot_prominences=False, breakpoint
     #             color='red', alpha=0.2, transform=ax.get_xaxis_transform())
     # ax.fill_between(x, 0, height_line, where=y > 0.75,
     #             color='red', alpha=0.2, transform=ax.get_xaxis_transform())
-    ax.fill_between(x, 0, height_line, where=y > 0.9,
+    ax.fill_between(x, 0, height_line, where=y > 0,
                 color='red', alpha=0.2, transform=ax.get_xaxis_transform())
     plt.show()
     
@@ -503,7 +507,7 @@ def get_F1(distances, tol_distances, breakpoints):
     legend = []
     # neighbour breakpoint will be aggregate into the same timestamp
     list_of_lists = cp_to_timestamps(breakpoints,0,np.size(breakpoints))
-    auc = []
+    f1s = []
 
     # what is tolerence distance?
     for i in tol_distances:
@@ -511,11 +515,12 @@ def get_F1(distances, tol_distances, breakpoints):
             warnings.filterwarnings("ignore")
             precision, recall, f1, quantiles = precision_recall_f1(list_of_lists,distances, "prominence",i)
             plt.plot(quantiles, f1)
+            f1s.append(f1)
             legend.append("tol. dist. = "+str(i))
     
     plt.xlabel("Quantile threshold")
     plt.ylabel("F1")
     plt.legend(legend)
     plt.show()
-    return None
+    return f1s
 
