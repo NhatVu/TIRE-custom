@@ -174,13 +174,13 @@ def smoothened_dissimilarity_measures(encoded_windows, encoded_windows_fft, doma
         beta = np.quantile(utils.distance(encoded_windows, window_size), 0.95)
         alpha = np.quantile(utils.distance(encoded_windows_fft, window_size), 0.95)
         encoded_windows_both = np.concatenate((encoded_windows*alpha, encoded_windows_fft*beta),axis=1)
-    print(f'encoded_windows_both shape before: {encoded_windows_both.shape}')
+    # print(f'encoded_windows_both shape before: {encoded_windows_both.shape}')
     encoded_windows_both = utils.matched_filter(encoded_windows_both, window_size)
-    print(f'encoded_windows_both shape: {encoded_windows_both.shape}')
+    # print(f'encoded_windows_both shape: {encoded_windows_both.shape}')
     distances = utils.distance(encoded_windows_both, window_size)
-    print(f'distances shape: {distances.shape}')
+    # print(f'distances shape: {distances.shape}')
     distances = utils.matched_filter(distances, window_size)
-    print(f'distances shape filter: {distances.shape}')
+    # print(f'distances shape filter: {distances.shape}')
     
     return distances
 
