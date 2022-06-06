@@ -238,6 +238,13 @@ def tpr_fpr_v2(bps,prominence, method="prominence",tol_dist=0):
     peaks_prom_all = prominence
 
     peaks = find_peaks(prominence)[0]
+    print(f'peaks length: {len(peaks)}')
+    print(f'number elements > 0: {len(np.where(prominence > 0)[0])}')
+    if len(peaks) == 0:
+        print(f'there is no peak in prominence')
+        print(f'len(prominence): {len(prominence)}, number elements > 0: {len(np.where(prominence > 0)[0])}')
+        print(np.where(prominence > 0)[0])
+        return 
     peaks_prom = prominence[peaks]
 
     # peaks_prom_all = np.array(new_peak_prominences(distances)[0])
@@ -657,10 +664,10 @@ def get_auc_v2(prominence, tol_distances, breakpoints):
     plt.legend(legend)
     plt.show()
 
-    plt.plot(tol_distances,auc)
-    plt.xlabel("toleration distance")
-    plt.ylabel("AUC")
-    plt.title("AUC")
-    plt.show()
+    # plt.plot(tol_distances,auc)
+    # plt.xlabel("toleration distance")
+    # plt.ylabel("AUC")
+    # plt.title("AUC")
+    # plt.show()
     
     return auc
