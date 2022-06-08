@@ -11,6 +11,7 @@ from scipy.signal import find_peaks, peak_prominences
 import warnings
 import time, copy
 import os
+import math
 
 def distance(data, window_size):
     """
@@ -676,3 +677,41 @@ def get_auc_v2(prominence, tol_distances, breakpoints):
 def create_folder_if_not_exist(folder_name):
     if os.path.exists(folder_name) == False:
         os.makedirs(folder_name)
+
+def create_prominence_from_multi_channels(num_channels:int, dissimilarities, window_size:int):
+    # get prominence for each channel 
+    prominence_all = []
+    for channel in range(num_channels):
+        prominence_all.append(new_peak_prominences(dissimilarities[channel])[0])
+
+    distance = np.array(prominence_all)
+    dis_threshold = np.mean(distance, axis = 1) # percentige for each axis 
+    distance_len = len(distance[0])
+    new_distance = np.zeros((distance_len)) # after combined change point accross channels
+    i = 0
+    while i < distance_len:
+        potential_indexes = np.where(distance[:, i] > dis_threshold)[0]
+        if len(potential_indexes) == 0:
+            i += 1
+            continue
+        anchor_index = potential_indexes[0] # first chanel have 
+        left_index, right_index = max(0, i), min(i + window_size, distance_len - 1)
+        tmp = []
+        for channel in range(num_channels):
+            channel_distance = distance[channel][left_index: right_index]
+            searching = np.where(channel_distance > dis_threshold[channel])[0]
+            if len(searching) > 0:
+                mean_index = math.floor(searching.mean())
+                mean_value = channel_distance[searching].mean()
+
+                tmp.append([mean_index, mean_value])
+        tmp = np.array(tmp)
+        if len(tmp) == num_channels: # hyperparameter
+            # if the number of channel have change point <= num_channels/2 => ignore current index
+            tmp = tmp.T # (channel = row, column = value)
+            tmp_mean = tmp.mean(axis=1)
+            new_distance[math.floor(left_index + tmp_mean[0])] = tmp_mean[1]
+
+        # update i
+        i += window_size
+    return new_distance

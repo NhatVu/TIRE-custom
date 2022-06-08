@@ -10,6 +10,7 @@
 import pandas as pd
 import numpy as np
 import os
+from sklearn.decomposition import FastICA
 
 from experiments.hyperparameter import HyperParameter
 
@@ -23,7 +24,7 @@ class Experiment:
     def set_hyperparameter_type(self, type:str):
         config = HyperParameter()
         config.domains = ['TD', 'FD', 'both']
-        config.experiment_name = 'replication'
+        config.experiment_name = 'ICA_L2'
         config.type_setting = type
         if type == 'alpha':
             config.window_size = 100
@@ -72,10 +73,21 @@ class Experiment:
     def get_timeseries(self):
         # load hasc data 
         dirname = os.path.dirname(__file__)
-        data_file = os.path.join(dirname, '../data/preprocess/hasc_l2_norm.csv')
+        data_file = os.path.join(dirname, '../data/hasc-111018-165936-acc.csv')
 
-        ts_df = pd.read_csv(data_file)
-        timeseries = ts_df['l2_norm'].to_numpy()
+        ts_df = pd.read_csv(data_file,header = None, names=['time', 'x', 'y', 'z'])
+        timeseries = ts_df[['x', 'y', 'z']].to_numpy()
+
+        # perform ICA
+        transformer = FastICA(n_components=None,
+                random_state=0,
+                whiten='unit-variance')
+        timeseries = transformer.fit_transform(timeseries)
+        timeseries = timeseries.T # change shape to (3, 39397)
+
+        # perform L2 on ICA 
+        timeseries = np.sqrt(np.sum(np.square(timeseries), axis=0))
+
 
         windows_TD = utils.ts_to_windows(timeseries, 0, self.hyperparams.window_size, 1)
         windows_TD = utils.minmaxscale(windows_TD,-1,1)
