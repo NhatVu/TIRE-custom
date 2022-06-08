@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks, peak_prominences
 import warnings
 import time, copy
+import os
 
 def distance(data, window_size):
     """
@@ -671,3 +672,7 @@ def get_auc_v2(prominence, tol_distances, breakpoints):
     # plt.show()
     
     return auc
+
+def create_folder_if_not_exist(folder_name):
+    if os.path.exists(folder_name) == False:
+        os.makedirs(folder_name)
