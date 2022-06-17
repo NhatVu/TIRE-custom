@@ -130,6 +130,11 @@ def new_peak_prominences(distances):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         all_peak_prom = peak_prominences(distances,range(len(distances)))
+
+    # add more filter
+    # all_peak_prom = matched_filter(all_peak_prom[0], window_size=100)
+    # all_peak_prom = peak_prominences(all_peak_prom, range(len(distances)))
+
     return all_peak_prom
 
 def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
@@ -149,6 +154,7 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
     peaks_prom = peak_prominences(distances,peaks)[0]
 
     peaks_prom_all = np.array(new_peak_prominences(distances)[0])
+    
     distances = np.array(distances)
         
     bps = np.array(bps)
@@ -344,6 +350,7 @@ def precision_recall_f1(bps,distances, method="prominence",tol_dist=0):
     peaks_prom = peak_prominences(distances,peaks)[0]
 
     peaks_prom_all = np.array(new_peak_prominences(distances)[0])
+
     distances = np.array(distances)
         
     bps = np.array(bps)
@@ -411,6 +418,96 @@ def precision_recall_f1(bps,distances, method="prominence",tol_dist=0):
         f1 = 2 * precision * recall / (precision + recall)
         # print(f'f1: {f1}')
         
+       
+    return precision, recall, f1, quantiles
+
+def precision_recall_f1_v2(bps, prominence, method="prominence",tol_dist=0):
+    """Calculation of Precision, Recall and F1
+    
+    Args:
+        bps: list of breakpoints (change points)
+        distances: list of dissimilarity scores
+        method: prominence- or height-based change point score
+        tol_dist: toleration distance
+        
+    Returns:
+        list of TPRs and FPRs for different values of the detection threshold
+    """
+    
+    peaks = find_peaks(prominence)[0]
+    peaks_prom_all = prominence
+
+    if len(peaks) == 0:
+        print(f'there is no peak in prominence')
+        print(f'len(prominence): {len(prominence)}, number elements > 0: {len(np.where(prominence > 0)[0])}')
+        print(np.where(prominence > 0)[0])
+        return 
+    peaks_prom = prominence[peaks]
+
+    distances = np.array(distances)
+        
+    bps = np.array(bps)
+        
+    if method == "prominence":
+        
+        nr_bps = len(bps)
+        
+        index_closest_peak = [0]*nr_bps
+        bp_detected = [0]*nr_bps
+        
+        #determine for each bp the allowed range s.t. alarm is closest to bp
+        
+        ranges = [0] * nr_bps
+        
+        for i in range(nr_bps):
+            
+            if i==0:
+                left = 0
+            else:
+                left = right
+            if i==(nr_bps-1):
+                right = len(peaks_prom_all)
+            else:
+                right = int((bps[i][-1]+bps[i+1][0])/2)+1
+                
+            ranges[i] = [left,right]
+        
+        # quantiles is threshold t in paper page 5
+        quantiles = np.quantile(peaks_prom, np.array(range(51))/ 50)
+        quantiles_set = set(quantiles)
+        quantiles_set.add(0.)
+        quantiles = list(quantiles_set)
+        quantiles.sort()
+        # print(f'quantiles: {quantiles}')
+        
+        nr_quant = len(quantiles)
+        
+        ncr = [0.]*nr_quant
+        nal = [0.]*nr_quant
+        
+        
+        for i in range(nr_quant):
+            for j in range(nr_bps):
+                
+                bp_nbhd = peaks_prom_all[max(bps[j][0]-tol_dist,ranges[j][0]):min(bps[j][-1]+tol_dist+1,ranges[j][1])]
+                
+                if len(bp_nbhd) > 0 and max(bp_nbhd) >= quantiles[i]:
+                    ncr[i] += 1
+                            
+            indices_all = np.array(range(len(distances)))
+            heights_alarms = distances[peaks_prom_all>=quantiles[i]]
+            nal[i] = len(heights_alarms)
+                    
+        ncr = np.array(ncr)
+        nal = np.array(nal)
+  
+        
+        ngt = nr_bps
+        
+        precision = ncr/ngt
+        recall = ncr/nal
+
+        f1 = 2 * precision * recall / (precision + recall)
        
     return precision, recall, f1, quantiles
 
@@ -624,6 +721,53 @@ def get_F1(distances, tol_distances, breakpoints):
     plt.ylabel("F1")
     plt.legend(legend)
     plt.show()
+
+    f1max = []
+    for i in range(len(tol_distances)):
+        f1max.append(max(f1s[i]))
+    print(f'f1 max: {f1max}')
+    return f1s
+
+def get_F1_v2(prominence, tol_distances, breakpoints):
+    """
+    Calculation of AUC for toleration distances in range(TD_start, TD_stop, TD_step) + plot of corresponding ROC curves
+    
+    Args:
+        distances: dissimilarity measures
+        tol_distances: list of different toleration distances
+        parameters: array parameters used to generate time series, size Tx(nr. of parameters)
+        window_size: window size used for CPD
+        breakpoints: change point ground truth. 
+        
+    Returns:
+        list of AUCs for every toleration distance
+    """
+    
+    # breakpoints = parameters_to_cps(parameters,window_size)
+
+    legend = []
+    # neighbour breakpoint will be aggregate into the same timestamp
+    list_of_lists = cp_to_timestamps(breakpoints,0,np.size(breakpoints))
+    f1s = []
+
+    # what is tolerence distance?
+    for i in tol_distances:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            precision, recall, f1, quantiles = precision_recall_f1(list_of_lists, prominence, "prominence",i)
+            plt.plot(quantiles, f1)
+            f1s.append(f1)
+            legend.append("tol. dist. = "+str(i))
+    
+    plt.xlabel("Quantile threshold")
+    plt.ylabel("F1")
+    plt.legend(legend)
+    plt.show()
+
+    f1max = []
+    for i in range(len(tol_distances)):
+        f1max.append(max(f1s[i]))
+    print(f'f1 max: {f1max}')
     return f1s
 
 def get_auc_v2(prominence, tol_distances, breakpoints):

@@ -23,7 +23,7 @@ class Experiment:
     def set_hyperparameter_type(self, type:str):
         config = HyperParameter()
         config.domains = ['TD', 'FD', 'both']
-        config.experiment_name = 'replication'
+        config.experiment_name = 'eeg_l2'
         config.type_setting = type
         if type == 'alpha':
             config.window_size = 100
@@ -72,10 +72,13 @@ class Experiment:
     def get_timeseries(self):
         # load hasc data 
         dirname = os.path.dirname(__file__)
-        data_file = os.path.join(dirname, '../data/preprocess/hasc_l2_norm.csv')
+        data_file = os.path.join(dirname, '../data/eeg_subj1_series1_data.csv')
 
-        ts_df = pd.read_csv(data_file)
-        timeseries = ts_df['l2_norm'].to_numpy()
+        egg_signal_df = pd.read_csv(data_file)
+        egg_signal_df.drop(['id'], axis=1, inplace=True)
+
+        timeseries = np.sqrt(np.square(egg_signal_df).sum(axis=1)).to_numpy()
+        print(f'timeseries shape: {timeseries.shape}')
 
         windows_TD = utils.ts_to_windows(timeseries, 0, self.hyperparams.window_size, 1)
         windows_TD = utils.minmaxscale(windows_TD,-1,1)
@@ -85,14 +88,46 @@ class Experiment:
 
     def get_breakpoint(self, timeseries_len:int):
         dirname = os.path.dirname(__file__)
-        breakpoints_index_file = os.path.join(dirname, '../data/preprocess/hasc_label_index.txt')
-        breakpoints_df = pd.read_csv(breakpoints_index_file, header=None)
-        breakpoints_index = breakpoints_df[0].to_numpy()
-        breakpoints_index = breakpoints_index - self.hyperparams.window_size # change index because we reduce the length of breakpoints 
-        breakpoints = np.array([0] * (timeseries_len - 2* self.hyperparams.window_size + 1))
+        breakpoints_index_file = os.path.join(dirname, '../data/eeg_subj1_series1_events.csv')
 
-        breakpoints[breakpoints_index] = [1]*len(breakpoints_index)
-        return breakpoints 
+        labels_df = pd.read_csv(breakpoints_index_file)
+        labels_df.drop(['id'], axis=1, inplace=True)
+        change_event_index = [0] * labels_df.shape[0]
+        for i in range(labels_df.shape[0]):
+            list_event = (np.where(labels_df.iloc[i] > 0)[0])
+            if len(list_event) > 0:
+                change_event_index[i] = max(list_event)
+        
+        # beginning of each segment is consider as a change point
+        zero_value= True if change_event_index[0] == 0 else False
+        i = 0 
+        while i < len(change_event_index):
+            if zero_value:
+                while i < len(change_event_index) and change_event_index[i] == 0:
+                    i += 1
+                if i >= len(change_event_index):
+                    break
+                change_event_index[i] = 1
+                i += 1
+                zero_value = False
+            else:
+                while i < len(change_event_index) and change_event_index[i] > 0:
+                    change_event_index[i] = 0
+                    i += 1 
+                if i >= len(change_event_index):
+                    break
+                change_event_index[i] = 1
+                i += 1 
+                zero_value = True 
+
+        
+        # breakpoints_df = pd.read_csv(breakpoints_index_file, header=None)
+        # breakpoints_index = breakpoints_df[0].to_numpy()
+        # breakpoints_index = breakpoints_index - self.hyperparams.window_size # change index because we reduce the length of breakpoints 
+        # breakpoints = np.array([0] * (timeseries_len - 2* self.hyperparams.window_size + 1))
+
+        # breakpoints[breakpoints_index] = [1]*len(breakpoints_index)
+        return change_event_index[self.hyperparams.window_size: len(change_event_index) - self.hyperparams.window_size + 1]
 
     def train_autoencoder(self, windows_TD, windows_FD):
         shared_features_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=200)
@@ -127,10 +162,7 @@ class Experiment:
             dissimilarities = np.loadtxt(file_path)
             tol_distances = [100, 200, 300]
             f1s = utils.get_F1(dissimilarities,tol_distances, breakpoints)
-            f1max = []
-            for i in range(len(tol_distances)):
-                f1max.append(max(f1s[i]))
-            print(f'mode: {domain}, f1 max: {f1max}')
+            
 
 
 

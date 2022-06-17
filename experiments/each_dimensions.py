@@ -142,13 +142,13 @@ class Experiment:
             auc = utils.get_auc_v2(prominence,tol_distances, breakpoints)
     
     def get_f1(self, breakpoints):
-        pass
-        # for domain in self.hyperparams.domains:
-        #     file_path = os.path.join(self.save_folder, f'dissimilarities_{domain}.txt')
-        #     dissimilarities = np.loadtxt(file_path)
-        #     tol_distances = [300]
-        #     print(f'mode: {domain}')
-        #     auc = utils.get_F1(dissimilarities,tol_distances, breakpoints)
+        for domain in self.hyperparams.domains:
+            file_path = os.path.join(self.save_folder, f'dissimilarities_{domain}.txt')
+            dissimilarities = np.loadtxt(file_path)
+            prominence = utils.create_prominence_from_multi_channels(self.num_channels, dissimilarities, self.hyperparams.window_size)
+            tol_distances = [200, 300]
+            print(f'mode: {domain}')
+            f1s = utils.get_F1_v2(prominence,tol_distances, breakpoints)
 
 
 
