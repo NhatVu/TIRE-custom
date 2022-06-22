@@ -7,9 +7,11 @@
 6. get_auc
 7. get_f1
 '''
+from time import time_ns
 import pandas as pd
 import numpy as np
 import os
+from sklearn.decomposition import FastICA
 
 from experiments.hyperparameter import HyperParameter
 
@@ -24,7 +26,7 @@ class Experiment:
     def set_hyperparameter_type(self, type:str):
         config = HyperParameter()
         config.domains = ['TD', 'FD', 'both']
-        config.experiment_name = 'eeg_l2'
+        config.experiment_name = 'EEG_ICA_DMD_L2'
         config.type_setting = type
         if type == 'alpha':
             config.window_size = 100
@@ -77,9 +79,26 @@ class Experiment:
 
         egg_signal_df = pd.read_csv(data_file)
         egg_signal_df.drop(['id'], axis=1, inplace=True)
+        timeseries = egg_signal_df.to_numpy()
 
-        timeseries = np.sqrt(np.square(egg_signal_df).sum(axis=1)).to_numpy()
+        # perform ICA
+        transformer = FastICA(n_components=None,
+                random_state=0,
+                whiten='unit-variance')
+        timeseries = transformer.fit_transform(timeseries)
+
+        # perform DMD
+        dmd = DMD(svd_rank=3)
+        dmd.fit(timeseries)
+
+        timeseries = dmd.modes.T.real
+
+        # perform L2 on ICA 
+        timeseries = np.sqrt(np.sum(np.square(timeseries), axis=0))
+
         print(f'timeseries shape: {timeseries.shape}')
+
+
 
         windows_TD = utils.ts_to_windows(timeseries, 0, self.hyperparams.window_size, 1)
         windows_TD = utils.minmaxscale(windows_TD,-1,1)
@@ -121,14 +140,7 @@ class Experiment:
                 i += 1 
                 zero_value = True 
 
-        
-        # breakpoints_df = pd.read_csv(breakpoints_index_file, header=None)
-        # breakpoints_index = breakpoints_df[0].to_numpy()
-        # breakpoints_index = breakpoints_index - self.hyperparams.window_size # change index because we reduce the length of breakpoints 
-        # breakpoints = np.array([0] * (timeseries_len - 2* self.hyperparams.window_size + 1))
-
-        # breakpoints[breakpoints_index] = [1]*len(breakpoints_index)
-        return change_event_index[self.hyperparams.window_size: len(change_event_index) - self.hyperparams.window_size + 1]
+        return change_event_index[self.hyperparams.window_size: len(change_event_index) - self.hyperparams.window_size + 1] 
 
     def train_autoencoder(self, windows_TD, windows_FD):
         shared_features_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=200)
@@ -147,12 +159,11 @@ class Experiment:
         
 
     def get_auc(self, breakpoints):
-        print(f'Change')
         dirname = os.path.dirname(__file__)
         for domain in self.hyperparams.domains:
             file_path = os.path.join(dirname, f'../data/dissimilarities_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}/dissimilarities_{domain}.txt')
             dissimilarities = np.loadtxt(file_path)
-            tol_distances = [100, 200, 300]
+            tol_distances = [300]
             print(f'mode: {domain}')
             auc = utils.get_auc(dissimilarities,tol_distances, breakpoints)
     
@@ -161,11 +172,9 @@ class Experiment:
         for domain in self.hyperparams.domains:
             file_path = os.path.join(dirname, f'../data/dissimilarities_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}/dissimilarities_{domain}.txt')
             dissimilarities = np.loadtxt(file_path)
-            tol_distances = [100, 200, 300]
-            f1s = utils.get_F1(dissimilarities,tol_distances, breakpoints)
-            
-
-
+            tol_distances = [300]
+            print(f'mode: {domain}')
+            auc = utils.get_F1(dissimilarities,tol_distances, breakpoints)
 
 
 

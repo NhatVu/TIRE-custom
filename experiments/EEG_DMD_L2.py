@@ -24,7 +24,7 @@ class Experiment:
     def set_hyperparameter_type(self, type:str):
         config = HyperParameter()
         config.domains = ['TD', 'FD', 'both']
-        config.experiment_name = 'eeg_l2'
+        config.experiment_name = 'eeg_dmd_l2'
         config.type_setting = type
         if type == 'alpha':
             config.window_size = 100
@@ -78,7 +78,12 @@ class Experiment:
         egg_signal_df = pd.read_csv(data_file)
         egg_signal_df.drop(['id'], axis=1, inplace=True)
 
-        timeseries = np.sqrt(np.square(egg_signal_df).sum(axis=1)).to_numpy()
+        dmd = DMD(svd_rank=3)
+        dmd.fit(egg_signal_df.to_numpy())
+
+        timeseries = dmd.modes.T.real
+
+        timeseries = np.sqrt(np.square(timeseries).sum(axis=0))
         print(f'timeseries shape: {timeseries.shape}')
 
         windows_TD = utils.ts_to_windows(timeseries, 0, self.hyperparams.window_size, 1)

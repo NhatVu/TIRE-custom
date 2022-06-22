@@ -24,7 +24,7 @@ class Experiment:
     def set_hyperparameter_type(self, type:str):
         config = HyperParameter()
         config.domains = ['TD', 'FD', 'both']
-        config.experiment_name = 'eeg_l2'
+        config.experiment_name = 'eeg_dmd'
         config.type_setting = type
         if type == 'alpha':
             config.window_size = 100
@@ -78,7 +78,10 @@ class Experiment:
         egg_signal_df = pd.read_csv(data_file)
         egg_signal_df.drop(['id'], axis=1, inplace=True)
 
-        timeseries = np.sqrt(np.square(egg_signal_df).sum(axis=1)).to_numpy()
+        dmd = DMD(svd_rank=1)
+        dmd.fit(egg_signal_df.to_numpy())
+
+        timeseries = dmd.modes.T[0].real
         print(f'timeseries shape: {timeseries.shape}')
 
         windows_TD = utils.ts_to_windows(timeseries, 0, self.hyperparams.window_size, 1)
@@ -91,7 +94,7 @@ class Experiment:
         dirname = os.path.dirname(__file__)
         breakpoints_index_file = os.path.join(dirname, '../data/eeg_subj1_series1_events.csv')
 
-        labels_df = pd.read_csv(breakpoints_index_file)
+        labels_df = pd.read_csv(breakpoints_index_file) # , 'FirstDigitTouch', 'LiftOff', 'BothReleased'
         labels_df.drop(['id'], axis=1, inplace=True)
         change_event_index = [0] * labels_df.shape[0]
         for i in range(labels_df.shape[0]):
@@ -121,18 +124,11 @@ class Experiment:
                 i += 1 
                 zero_value = True 
 
-        
-        # breakpoints_df = pd.read_csv(breakpoints_index_file, header=None)
-        # breakpoints_index = breakpoints_df[0].to_numpy()
-        # breakpoints_index = breakpoints_index - self.hyperparams.window_size # change index because we reduce the length of breakpoints 
-        # breakpoints = np.array([0] * (timeseries_len - 2* self.hyperparams.window_size + 1))
-
-        # breakpoints[breakpoints_index] = [1]*len(breakpoints_index)
         return change_event_index[self.hyperparams.window_size: len(change_event_index) - self.hyperparams.window_size + 1]
 
     def train_autoencoder(self, windows_TD, windows_FD):
-        shared_features_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=200)
-        shared_features_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=200)
+        shared_features_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=20)
+        shared_features_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=20)
 
         return shared_features_TD, shared_features_FD 
 
