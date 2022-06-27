@@ -137,7 +137,7 @@ def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, lo
     pae.fit(new_windows,
                                   epochs=nr_epochs,
                                   verbose=1,
-                                  batch_size=64,
+                                  batch_size=128,
                                   shuffle=True,
                                   validation_split=0.0,
                                   initial_epoch=0,
