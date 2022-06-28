@@ -70,10 +70,10 @@ class Experiment:
         self.hyperparams = config
 
 
-    def get_timeseries(self):
+    def get_timeseries(self, file_path = '../data/eeg_subj1_series1_data.csv'):
         # load hasc data 
         dirname = os.path.dirname(__file__)
-        data_file = os.path.join(dirname, '../data/eeg_subj1_series1_data.csv')
+        data_file = os.path.join(dirname, file_path)
 
         egg_signal_df = pd.read_csv(data_file)
         egg_signal_df.drop(['id'], axis=1, inplace=True)
@@ -87,54 +87,78 @@ class Experiment:
 
         return timeseries, len(timeseries), windows_TD, windows_FD
 
-    def get_breakpoint(self, timeseries_len:int):
+    def get_breakpoint(self, timeseries_len:int, file_path = '../data/eeg_subj1_series1_events.csv'):
         dirname = os.path.dirname(__file__)
-        breakpoints_index_file = os.path.join(dirname, '../data/eeg_subj1_series1_events.csv')
+        breakpoints_index_file = os.path.join(dirname, file_path)
 
         labels_df = pd.read_csv(breakpoints_index_file)
         labels_df.drop(['id'], axis=1, inplace=True)
-        change_event_index = [0] * labels_df.shape[0]
-        for i in range(labels_df.shape[0]):
-            list_event = (np.where(labels_df.iloc[i] > 0)[0])
-            if len(list_event) > 0:
-                change_event_index[i] = max(list_event)
+
+        # change_event_index = [0] * labels_df.shape[0]
+        # for i in range(labels_df.shape[0]):
+        #     list_event = (np.where(labels_df.iloc[i] > 0)[0])
+        #     if len(list_event) > 0:
+        #         change_event_index[i] = 1 #max(list_event)
         
-        # beginning of each segment is consider as a change point
-        zero_value= True if change_event_index[0] == 0 else False
-        i = 0 
-        while i < len(change_event_index):
-            if zero_value:
-                while i < len(change_event_index) and change_event_index[i] == 0:
-                    i += 1
-                if i >= len(change_event_index):
-                    break
-                change_event_index[i] = 1
+        # # beginning of each segment is consider as a change point
+        # zero_value= True if change_event_index[0] == 0 else False
+        # i = 0 
+        # while i < len(change_event_index):
+        #     if zero_value:
+        #         while i < len(change_event_index) and change_event_index[i] == 0:
+        #             i += 1
+        #         if i >= len(change_event_index):
+        #             break
+        #         change_event_index[i] = 1
+        #         i += 1
+        #         zero_value = False
+        #     else:
+        #         while i < len(change_event_index) and change_event_index[i] > 0:
+        #             change_event_index[i] = 0
+        #             i += 1 
+        #         if i >= len(change_event_index):
+        #             break
+        #         change_event_index[i] = 1
+        #         i += 1 
+        #         zero_value = True 
+
+
+        change_event_index = labels_df.max(axis=1).to_numpy()
+        possitive_index = np.where(np.array(change_event_index) > 0)[0]
+        change_index = []
+        i = 0
+        while i < len(possitive_index) - 1:
+            change_index.append(possitive_index[i])
+            while i + 1 < len(possitive_index) and possitive_index[i] + 1 == possitive_index[i + 1]: 
                 i += 1
-                zero_value = False
-            else:
-                while i < len(change_event_index) and change_event_index[i] > 0:
-                    change_event_index[i] = 0
-                    i += 1 
-                if i >= len(change_event_index):
-                    break
-                change_event_index[i] = 1
-                i += 1 
-                zero_value = True 
+            if i + 1 < len(possitive_index):
+                change_index.append(possitive_index[i] + 1)
+            i += 1
+        result = np.array([0] * len(change_event_index))
+        result[change_index] = [1] * len(change_index)
 
-        
-        # breakpoints_df = pd.read_csv(breakpoints_index_file, header=None)
-        # breakpoints_index = breakpoints_df[0].to_numpy()
-        # breakpoints_index = breakpoints_index - self.hyperparams.window_size # change index because we reduce the length of breakpoints 
-        # breakpoints = np.array([0] * (timeseries_len - 2* self.hyperparams.window_size + 1))
+        return result[self.hyperparams.window_size: len(change_event_index) - self.hyperparams.window_size + 1]
 
-        # breakpoints[breakpoints_index] = [1]*len(breakpoints_index)
-        return change_event_index[self.hyperparams.window_size: len(change_event_index) - self.hyperparams.window_size + 1]
+    def train_autoencoder(self, windows_TD, windows_FD, validation_TD=None, validation_FD=None):
+        shared_features_TD, encoder_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=5, validation_data=validation_TD, nr_epochs=100)
 
-    def train_autoencoder(self, windows_TD, windows_FD):
-        shared_features_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=200)
-        shared_features_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=200)
+        shared_features_FD, encoder_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=5, validation_data=validation_FD, nr_epochs=100)
 
+        self.encoder_TD = encoder_TD
+        self.encoder_FD = encoder_FD
         return shared_features_TD, shared_features_FD 
+    
+    def __predict_shared_features (self, windows, encoder, nr_ae, nr_shared):
+        new_windows = TIRE.prepare_input_paes(windows,nr_ae)
+        encoded_windows_pae = encoder.predict(new_windows)
+        encoded_windows = np.concatenate((encoded_windows_pae[:,0,:nr_shared],encoded_windows_pae[-nr_ae+1:,nr_ae-1,:nr_shared]),axis=0)
+        return encoded_windows
+    
+    def predict(self, windows_TD, windows_FD):
+        encoded_windows_TD = self.__predict_shared_features(windows_TD, self.encoder_TD, self.hyperparams.nr_ae_TD, self.hyperparams.nr_shared_TD)
+        encoded_windows_FD = self.__predict_shared_features(windows_FD, self.encoder_FD, self.hyperparams.nr_ae_FD, self.hyperparams.nr_shared_FD)
+
+        return encoded_windows_TD, encoded_windows_FD
 
     def dissimilarities_post_process(self, shared_features_TD, shared_features_FD):
         dirname = os.path.dirname(__file__)
@@ -146,7 +170,7 @@ class Experiment:
             print(f'{save_folder}/dissimilarities_{domain}.txt')
         
 
-    def get_auc(self, breakpoints):
+    def get_auc(self, breakpoints, is_plot=True):
         print(f'Change')
         dirname = os.path.dirname(__file__)
         for domain in self.hyperparams.domains:
@@ -154,15 +178,16 @@ class Experiment:
             dissimilarities = np.loadtxt(file_path)
             tol_distances = [100, 200, 300]
             print(f'mode: {domain}')
-            auc = utils.get_auc(dissimilarities,tol_distances, breakpoints)
+            auc = utils.get_auc(dissimilarities,tol_distances, breakpoints, is_plot)
     
-    def get_f1(self, breakpoints):
+    def get_f1(self, breakpoints, is_plot=True):
         dirname = os.path.dirname(__file__)
         for domain in self.hyperparams.domains:
             file_path = os.path.join(dirname, f'../data/dissimilarities_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}/dissimilarities_{domain}.txt')
             dissimilarities = np.loadtxt(file_path)
             tol_distances = [100, 200, 300]
-            f1s = utils.get_F1(dissimilarities,tol_distances, breakpoints)
+            print(f'mode: {domain}')
+            f1s = utils.get_F1(dissimilarities,tol_distances, breakpoints, is_plot)
             
 
 

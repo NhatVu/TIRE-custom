@@ -638,7 +638,7 @@ def plot_cp(distances, time_start, time_stop, plot_prominences=False, breakpoint
                 color='red', alpha=0.2, transform=ax.get_xaxis_transform())
     plt.show()
     
-def get_auc(distances, tol_distances, breakpoints):
+def get_auc(distances, tol_distances, breakpoints, is_plot=True):
     """
     Calculation of AUC for toleration distances in range(TD_start, TD_stop, TD_step) + plot of corresponding ROC curves
     
@@ -665,28 +665,30 @@ def get_auc(distances, tol_distances, breakpoints):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             tpr, fpr = tpr_fpr(list_of_lists,distances, "prominence",i)
-        plt.plot(fpr,tpr)
-        legend.append("tol. dist. = "+str(i))
+        if is_plot:
+            plt.plot(fpr,tpr)
+            legend.append("tol. dist. = "+str(i))
         auc.append(np.abs(np.trapz(tpr,x=fpr)))
 
     print(auc)
-    plt.xlabel("FPR")
-    plt.ylabel("TPR")
-    plt.title("ROC curve")
-    plt.plot([0,1],[0,1],'--')
-    legend.append("TPR=FPR")
-    plt.legend(legend)
-    plt.show()
+    if is_plot:
+        plt.xlabel("FPR")
+        plt.ylabel("TPR")
+        plt.title("ROC curve")
+        plt.plot([0,1],[0,1],'--')
+        legend.append("TPR=FPR")
+        plt.legend(legend)
+        plt.show()
 
-    plt.plot(tol_distances,auc)
-    plt.xlabel("toleration distance")
-    plt.ylabel("AUC")
-    plt.title("AUC")
-    plt.show()
+        plt.plot(tol_distances,auc)
+        plt.xlabel("toleration distance")
+        plt.ylabel("AUC")
+        plt.title("AUC")
+        plt.show()
     
     return auc
 
-def get_F1(distances, tol_distances, breakpoints):
+def get_F1(distances, tol_distances, breakpoints, is_plot=True):
     """
     Calculation of AUC for toleration distances in range(TD_start, TD_stop, TD_step) + plot of corresponding ROC curves
     
@@ -713,14 +715,17 @@ def get_F1(distances, tol_distances, breakpoints):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             precision, recall, f1, quantiles = precision_recall_f1(list_of_lists,distances, "prominence",i)
-            plt.plot(quantiles, f1)
             f1s.append(f1)
-            legend.append("tol. dist. = "+str(i))
+
+            if is_plot:
+                plt.plot(quantiles, f1)
+                legend.append("tol. dist. = "+str(i))
     
-    plt.xlabel("Quantile threshold")
-    plt.ylabel("F1")
-    plt.legend(legend)
-    plt.show()
+    if is_plot:
+        plt.xlabel("Quantile threshold")
+        plt.ylabel("F1")
+        plt.legend(legend)
+        plt.show()
 
     f1max = []
     for i in range(len(tol_distances)):
@@ -728,7 +733,7 @@ def get_F1(distances, tol_distances, breakpoints):
     print(f'f1 max: {f1max}')
     return f1s
 
-def get_F1_v2(prominence, tol_distances, breakpoints):
+def get_F1_v2(prominence, tol_distances, breakpoints, is_plot=True):
     """
     Calculation of AUC for toleration distances in range(TD_start, TD_stop, TD_step) + plot of corresponding ROC curves
     
@@ -755,14 +760,17 @@ def get_F1_v2(prominence, tol_distances, breakpoints):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             precision, recall, f1, quantiles = precision_recall_f1(list_of_lists, prominence, "prominence",i)
-            plt.plot(quantiles, f1)
             f1s.append(f1)
-            legend.append("tol. dist. = "+str(i))
+            
+            if is_plot:
+                plt.plot(quantiles, f1)
+                legend.append("tol. dist. = "+str(i))
     
-    plt.xlabel("Quantile threshold")
-    plt.ylabel("F1")
-    plt.legend(legend)
-    plt.show()
+    if is_plot:
+        plt.xlabel("Quantile threshold")
+        plt.ylabel("F1")
+        plt.legend(legend)
+        plt.show()
 
     f1max = []
     for i in range(len(tol_distances)):
@@ -770,7 +778,7 @@ def get_F1_v2(prominence, tol_distances, breakpoints):
     print(f'f1 max: {f1max}')
     return f1s
 
-def get_auc_v2(prominence, tol_distances, breakpoints):
+def get_auc_v2(prominence, tol_distances, breakpoints, is_plot=True):
     """
     Calculation of AUC for toleration distances in range(TD_start, TD_stop, TD_step) + plot of corresponding ROC curves
     
@@ -797,18 +805,21 @@ def get_auc_v2(prominence, tol_distances, breakpoints):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             tpr, fpr = tpr_fpr_v2(list_of_lists,prominence, "prominence",i)
-        plt.plot(fpr,tpr)
-        legend.append("tol. dist. = "+str(i))
+        
+        if is_plot:
+            plt.plot(fpr,tpr)
+            legend.append("tol. dist. = "+str(i))
         auc.append(np.abs(np.trapz(tpr,x=fpr)))
 
     print(auc)
-    plt.xlabel("FPR")
-    plt.ylabel("TPR")
-    plt.title("ROC curve")
-    plt.plot([0,1],[0,1],'--')
-    legend.append("TPR=FPR")
-    plt.legend(legend)
-    plt.show()
+    if is_plot:
+        plt.xlabel("FPR")
+        plt.ylabel("TPR")
+        plt.title("ROC curve")
+        plt.plot([0,1],[0,1],'--')
+        legend.append("TPR=FPR")
+        plt.legend(legend)
+        plt.show()
 
     # plt.plot(tol_distances,auc)
     # plt.xlabel("toleration distance")

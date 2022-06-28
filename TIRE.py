@@ -108,7 +108,7 @@ def prepare_input_paes(windows,nr_ae):
         new_windows.append(windows[i:nr_windows-nr_ae+1+i])
     return np.transpose(new_windows,(1,0,2))
 
-def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, loss_weight=1, nr_epochs=200, nr_patience=10):
+def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, loss_weight=1, nr_epochs=200, nr_patience=10, validation_data=None):
     """
     Creates and trains an autoencoder with a Time-Invariant REpresentation (TIRE)
     
@@ -129,6 +129,9 @@ def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, lo
     
     new_windows = prepare_input_paes(windows,nr_ae)
 
+    if validation_data is not None:
+        validation_new_windows = prepare_input_paes(validation_data[0], nr_ae)
+
     pae, encoder, decoder = create_parallel_aes(window_size_per_ae,intermediate_dim,latent_dim,nr_ae,nr_shared,loss_weight)
     pae.compile(optimizer='adam')
 
@@ -137,18 +140,20 @@ def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, lo
     pae.fit(new_windows,
                                   epochs=nr_epochs,
                                   verbose=1,
-                                  batch_size=128,
-                                  shuffle=True,
+                                  batch_size=256,
+                                  shuffle=True, # why use shuffle for sequence data
                                   validation_split=0.0,
+                                  validation_data=(validation_new_windows, validation_data[1]) if validation_data is not None else None,
                                   initial_epoch=0,
                                   callbacks=[callback]
                                   )
 
     #reconstruct = pae.predict(new_windows)
-    encoded_windows_pae = encoder.predict(new_windows)
-    encoded_windows = np.concatenate((encoded_windows_pae[:,0,:nr_shared],encoded_windows_pae[-nr_ae+1:,nr_ae-1,:nr_shared]),axis=0)
+    encoded_windows = None # for large training data, it cause error copy from CPU to GPU
+    # encoded_windows_pae = encoder.predict(new_windows)
+    # encoded_windows = np.concatenate((encoded_windows_pae[:,0,:nr_shared],encoded_windows_pae[-nr_ae+1:,nr_ae-1,:nr_shared]),axis=0)
 
-    return encoded_windows
+    return encoded_windows, encoder
 
 def smoothened_dissimilarity_measures(encoded_windows, encoded_windows_fft, domain, window_size):
     """
