@@ -140,12 +140,19 @@ class Experiment:
         return result[self.hyperparams.window_size: len(change_event_index) - self.hyperparams.window_size + 1]
 
     def train_autoencoder(self, windows_TD, windows_FD, validation_TD=None, validation_FD=None):
-        shared_features_TD, encoder_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=5, validation_data=validation_TD, nr_epochs=100)
-
-        shared_features_FD, encoder_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=5, validation_data=validation_FD, nr_epochs=100)
+        shared_features_TD, encoder_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=10, nr_epochs=100, validation_data=validation_TD)
+        shared_features_FD, encoder_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=10, nr_epochs=100, validation_data=validation_FD)
 
         self.encoder_TD = encoder_TD
         self.encoder_FD = encoder_FD
+
+        # save model 
+        dirname = os.path.dirname(__file__)
+        save_folder_TD = os.path.join(dirname, f'../train/encoder_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}_TD')
+        save_folder_FD = os.path.join(dirname, f'../train/encoder_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}_FD')
+
+        encoder_TD.save_weights(save_folder_TD)
+        encoder_FD.save_weights(save_folder_FD)
         return shared_features_TD, shared_features_FD 
     
     def __predict_shared_features (self, windows, encoder, nr_ae, nr_shared):

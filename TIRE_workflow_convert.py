@@ -21,11 +21,13 @@ from importlib import reload
 
 # experiments 
 # import experiments.EEG_L2 as x # original 
-# import experiments.EEG_DMD as x # Method 5: DMD, svd = 1 
-import experiments.EEG_DMD_L2 as x # Method 7: DMD, svd = 3, L2 norm
+import experiments.EEG_DMD as x # Method 5: DMD, svd = 1 
+# import experiments.EEG_DMD_L2 as x # Method 7: DMD, svd = 3, L2 norm
 
 # setting env variable 
 os.environ["TF_GPU_ALLOCATOR"]="cuda_malloc_async"
+os.environ["CUDA_VISIBLE_DEVICES"]="-1"    
+
 
 # %%
 # ipynb, mỗi lần đổi code, phải restart kernal để load lại toàn bộ. Import thì chỉ lấy từ cache, ko lấy được code mới. Lý do
@@ -73,7 +75,7 @@ testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/
 import timeit
 
 start = timeit.default_timer()
-# shared_features_TD, shared_features_FD = workflow.train_autoencoder(training_windows_TD, training_windows_FD, validation_TD=validation_windows_TD, validation_FD = validation_windows_FD)
+shared_features_TD, shared_features_FD = workflow.train_autoencoder(training_windows_TD, training_windows_FD, validation_TD=validation_windows_TD, validation_FD = validation_windows_FD)
 
 stop = timeit.default_timer()
 
