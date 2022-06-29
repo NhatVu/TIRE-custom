@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks, peak_prominences
+import os
 
 
 import utils
@@ -20,10 +21,11 @@ from importlib import reload
 
 # experiments 
 # import experiments.EEG_L2 as x # original 
-import experiments.EEG_DMD as x # Method 5: DMD, svd = 1 
-# import experiments.EEG_DMD_L2 as x # Method 7: DMD, svd = 3, L2 norm
+# import experiments.EEG_DMD as x # Method 5: DMD, svd = 1 
+import experiments.EEG_DMD_L2 as x # Method 7: DMD, svd = 3, L2 norm
 
-
+# setting env variable 
+os.environ["TF_GPU_ALLOCATOR"]="cuda_malloc_async"
 
 # %%
 # ipynb, mỗi lần đổi code, phải restart kernal để load lại toàn bộ. Import thì chỉ lấy từ cache, ko lấy được code mới. Lý do
@@ -43,6 +45,11 @@ print('training')
 training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_training_data.csv')
 print('call breakpoint')
 training_breakpoints = workflow.get_breakpoint(training_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_training_label.csv')
+
+# validation
+print('validation')
+validation_timeseries, validation_timeseries_len, validation_windows_TD, validation_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_validation_data.csv')
+testing_breakpoints = workflow.get_breakpoint(validation_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_validation_label.csv')
 
 
 # testing
@@ -66,7 +73,7 @@ testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/
 import timeit
 
 start = timeit.default_timer()
-shared_features_TD, shared_features_FD = workflow.train_autoencoder(training_windows_TD, training_windows_FD, validation_TD=None, validation_FD = None)
+# shared_features_TD, shared_features_FD = workflow.train_autoencoder(training_windows_TD, training_windows_FD, validation_TD=validation_windows_TD, validation_FD = validation_windows_FD)
 
 stop = timeit.default_timer()
 

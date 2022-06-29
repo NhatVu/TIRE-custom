@@ -48,3 +48,4 @@ dist/**
 *.nls.*.json
 *.i18n.json
 data
+train

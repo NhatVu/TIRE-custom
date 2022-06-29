@@ -130,20 +130,21 @@ def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, lo
     new_windows = prepare_input_paes(windows,nr_ae)
 
     if validation_data is not None:
-        validation_new_windows = prepare_input_paes(validation_data[0], nr_ae)
+        print('using validation data')
+        validation_new_windows = prepare_input_paes(validation_data, nr_ae)
 
     pae, encoder, decoder = create_parallel_aes(window_size_per_ae,intermediate_dim,latent_dim,nr_ae,nr_shared,loss_weight)
     pae.compile(optimizer='adam')
 
-    callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=nr_patience)
+    callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=nr_patience)
 
     pae.fit(new_windows,
                                   epochs=nr_epochs,
                                   verbose=1,
                                   batch_size=256,
                                   shuffle=True, # why use shuffle for sequence data
-                                  validation_split=0.0,
-                                  validation_data=(validation_new_windows, validation_data[1]) if validation_data is not None else None,
+                                #   validation_split=0.0,
+                                  validation_data=(validation_new_windows, ) if validation_data is not None else None,
                                   initial_epoch=0,
                                   callbacks=[callback]
                                   )

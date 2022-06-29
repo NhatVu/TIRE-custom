@@ -105,22 +105,48 @@ class Experiment:
         return result[self.hyperparams.window_size: len(result) - self.hyperparams.window_size + 1]
 
     def train_autoencoder(self, windows_TD, windows_FD, validation_TD=None, validation_FD = None):
-        shared_features_TD, encoder_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=20, nr_epochs=200)
-        shared_features_FD, encoder_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=20, nr_epochs=200)
+        shared_features_TD, encoder_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=10, nr_epochs=1, validation_data=validation_TD)
+        shared_features_FD, encoder_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=10, nr_epochs=1, validation_data=validation_FD)
 
         self.encoder_TD = encoder_TD
         self.encoder_FD = encoder_FD
+
+        # save model 
+        dirname = os.path.dirname(__file__)
+        save_folder_TD = os.path.join(dirname, f'../train/encoder_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}_TD')
+        save_folder_FD = os.path.join(dirname, f'../train/encoder_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}_FD')
+
+        encoder_TD.save_weights(save_folder_TD)
+        encoder_FD.save_weights(save_folder_FD)
         return shared_features_TD, shared_features_FD 
     
-    def __predict_shared_features (self, windows, encoder, nr_ae, nr_shared):
+    def _predict_shared_features (self, windows, encoder, nr_ae, nr_shared):
         new_windows = TIRE.prepare_input_paes(windows,nr_ae)
         encoded_windows_pae = encoder.predict(new_windows)
         encoded_windows = np.concatenate((encoded_windows_pae[:,0,:nr_shared],encoded_windows_pae[-nr_ae+1:,nr_ae-1,:nr_shared]),axis=0)
         return encoded_windows
     
     def predict(self, windows_TD, windows_FD):
-        encoded_windows_TD = self.__predict_shared_features(windows_TD, self.encoder_TD, self.hyperparams.nr_ae_TD, self.hyperparams.nr_shared_TD)
-        encoded_windows_FD = self.__predict_shared_features(windows_FD, self.encoder_FD, self.hyperparams.nr_ae_FD, self.hyperparams.nr_shared_FD)
+        # if encoder doesn't exist in self. load it from file 
+        if hasattr(self, 'encoder_TD') == False or hasattr(self, 'encoder_FD') == False:
+            print('load encoder')
+            hparam = self.hyperparams
+            pae_TD, encoder_TD, decoder_TD = TIRE.create_parallel_aes(hparam.window_size, hparam.intermediate_dim_TD, hparam.latent_dim_TD,hparam.nr_ae_TD, hparam.nr_shared_TD, hparam.loss_weight_TD)
+
+            pae_FD, encoder_FD, decoder_FD = TIRE.create_parallel_aes(hparam.nfft // 2 + 1, hparam.intermediate_dim_FD, hparam.latent_dim_FD,hparam.nr_ae_FD, hparam.nr_shared_FD, hparam.loss_weight_FD)
+
+            dirname = os.path.dirname(__file__)
+            save_folder_TD = os.path.join(dirname, f'../train/encoder_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}_TD')
+            save_folder_FD = os.path.join(dirname, f'../train/encoder_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}_FD')
+            
+            encoder_TD.load_weights(save_folder_TD)
+            encoder_FD.load_weights(save_folder_FD)
+
+            self.encoder_TD = encoder_TD
+            self.encoder_FD = encoder_FD
+
+        encoded_windows_TD = self._predict_shared_features(windows_TD, self.encoder_TD, self.hyperparams.nr_ae_TD, self.hyperparams.nr_shared_TD)
+        encoded_windows_FD = self._predict_shared_features(windows_FD, self.encoder_FD, self.hyperparams.nr_ae_FD, self.hyperparams.nr_shared_FD)
 
         return encoded_windows_TD, encoded_windows_FD
 
