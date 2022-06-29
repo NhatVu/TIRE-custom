@@ -12,6 +12,8 @@ import numpy as np
 import os
 
 from experiments.BaseExperiments import OneDimExperiment
+import experiments.utils_eeg as utils_eeg
+
 
 import utils
 
@@ -21,7 +23,6 @@ class EEG_L2_Experiment(OneDimExperiment):
     
     def set_hyperparameter_type(self, type:str):
         super().set_hyperparameter_type(type)
-        print(f'hyperparameter: {self.hyperparams}')
         self.hyperparams.experiment_name = 'eeg_l2'
         
     def get_timeseries(self, file_path = '../data/eeg_subj1_series1_data.csv'):
@@ -48,21 +49,9 @@ class EEG_L2_Experiment(OneDimExperiment):
         labels_df = pd.read_csv(breakpoints_index_file)
         labels_df.drop(['id'], axis=1, inplace=True)
 
-        change_event_index = labels_df.max(axis=1).to_numpy()
-        possitive_index = np.where(np.array(change_event_index) > 0)[0]
-        change_index = []
-        i = 0
-        while i < len(possitive_index) - 1:
-            change_index.append(possitive_index[i])
-            while i + 1 < len(possitive_index) and possitive_index[i] + 1 == possitive_index[i + 1]: 
-                i += 1
-            if i + 1 < len(possitive_index):
-                change_index.append(possitive_index[i] + 1)
-            i += 1
-        result = np.array([0] * len(change_event_index))
-        result[change_index] = [1] * len(change_index)
+        result = utils_eeg.create_break_point_index(labels_df=labels_df)
 
-        return result[self.hyperparams.window_size: len(change_event_index) - self.hyperparams.window_size + 1]
+        return result[self.hyperparams.window_size: len(result) - self.hyperparams.window_size + 1]
 
 
 

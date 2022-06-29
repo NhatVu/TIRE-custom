@@ -13,6 +13,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks, peak_prominences
 import os
+import sys
 
 
 import utils
@@ -20,9 +21,9 @@ import TIRE
 from importlib import reload 
 
 # experiments 
-from experiments.EEG_L2 import EEG_L2_Experiment # original 
-# import experiments.EEG_DMD as x # Method 5: DMD, svd = 1 
-# import experiments.EEG_DMD_L2 as x # Method 7: DMD, svd = 3, L2 norm
+# from experiments.EEG_L2 import EEG_L2_Experiment # original 
+# from experiments.EEG_DMD import EEG_DMD_Experiment # Method 5: DMD, svd = 1 
+from experiments.EEG_DMD_L2 import EEG_DMD_L2_Experiment # Method 7: DMD, svd = 3, L2 norm
 
 # setting env variable 
 os.environ["TF_GPU_ALLOCATOR"]="cuda_malloc_async"
@@ -32,17 +33,14 @@ os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 # %%
 # ipynb, mỗi lần đổi code, phải restart kernal để load lại toàn bộ. Import thì chỉ lấy từ cache, ko lấy được code mới. Lý do
 
-# %%
-workflow = EEG_L2_Experiment()
+workflow = EEG_DMD_L2_Experiment()
 workflow.set_hyperparameter_type('alpha')
 print(f'experiment name: {workflow.hyperparams.experiment_name}')
 
-# %% [markdown]
 # ## Generate data
 
-# %%
 # training
-series = 1
+series = int(sys.argv[1])
 print('training')
 training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_training_data.csv')
 print('call breakpoint')
@@ -60,17 +58,6 @@ testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_
 testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_testing_label.csv')
 
 
-# training
-# print('training')
-# training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries('../../Data/grasp-and-lift-eeg-detection/train/subj10_series1_data.csv')
-# training_breakpoints = workflow.get_breakpoint(training_timeseries_len, '../../Data/grasp-and-lift-eeg-detection/train/subj10_series1_events.csv')
-
-# # testing
-# print('testing')
-# testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_FD = workflow.get_timeseries('../../Data/grasp-and-lift-eeg-detection/train/subj10_series1_data.csv')
-# testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, '../../Data/grasp-and-lift-eeg-detection/train/subj10_series1_events.csv')
-
-# %% [markdown]
 # ## Train the autoencoders
 import timeit
 
@@ -81,23 +68,19 @@ stop = timeit.default_timer()
 
 print('Time training in minutes: ', (stop - start) / 60) 
 
-# %% [markdown]
 # ## Postprocessing and peak detection
+workflow.prepare_cal_metrics(dataset_number=series)
 
-# %%
 # predict shared features on testing data 
 testing_shared_features_TD, testing_shared_features_FD = workflow.predict(testing_windows_TD, testing_windows_FD)
 # post process for TD, FD and both, then save to file 
 workflow.dissimilarities_post_process(testing_shared_features_TD, testing_shared_features_FD)
 
-workflow.prepare_cal_metrics()
 
 is_plot=False
-# %%
 print('Get auc')
 workflow.get_auc(testing_breakpoints, is_plot)
 
-# %%
 reload(utils)
 print('get f1')
 f1s = workflow.get_f1(testing_breakpoints, is_plot)

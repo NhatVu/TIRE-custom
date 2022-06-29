@@ -115,6 +115,24 @@ class OneDimExperiment(Experiment):
         return encoded_windows
     
     def predict(self, windows_TD, windows_FD):
+        # if encoder doesn't exist in self. load it from file 
+        if hasattr(self, 'encoder_TD') == False or hasattr(self, 'encoder_FD') == False:
+            print('load encoder')
+            hparam = self.hyperparams
+            pae_TD, encoder_TD, decoder_TD = TIRE.create_parallel_aes(hparam.window_size, hparam.intermediate_dim_TD, hparam.latent_dim_TD,hparam.nr_ae_TD, hparam.nr_shared_TD, hparam.loss_weight_TD)
+
+            pae_FD, encoder_FD, decoder_FD = TIRE.create_parallel_aes(hparam.nfft // 2 + 1, hparam.intermediate_dim_FD, hparam.latent_dim_FD,hparam.nr_ae_FD, hparam.nr_shared_FD, hparam.loss_weight_FD)
+
+            dirname = os.path.dirname(__file__)
+            save_folder_TD = os.path.join(dirname, f'../train/encoder_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}_TD')
+            save_folder_FD = os.path.join(dirname, f'../train/encoder_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}_FD')
+            
+            encoder_TD.load_weights(save_folder_TD)
+            encoder_FD.load_weights(save_folder_FD)
+
+            self.encoder_TD = encoder_TD
+            self.encoder_FD = encoder_FD
+
         encoded_windows_TD = self.__predict_shared_features(windows_TD, self.encoder_TD, self.hyperparams.nr_ae_TD, self.hyperparams.nr_shared_TD)
         encoded_windows_FD = self.__predict_shared_features(windows_FD, self.encoder_FD, self.hyperparams.nr_ae_FD, self.hyperparams.nr_shared_FD)
 
@@ -124,21 +142,29 @@ class OneDimExperiment(Experiment):
         dirname = os.path.dirname(__file__)
         for domain in self.hyperparams.domains:
             dissimilarities = TIRE.smoothened_dissimilarity_measures(shared_features_TD, shared_features_FD, domain, self.hyperparams.window_size)
-            save_folder = os.path.join(dirname, f'../data/dissimilarities_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}')
-            utils.create_folder_if_not_exist(save_folder)
-            np.savetxt(f'{save_folder}/dissimilarities_{domain}.txt', dissimilarities, fmt='%.20f')
-            print(f'{save_folder}/dissimilarities_{domain}.txt')
+            # save_folder = os.path.join(dirname, f'../data/dissimilarities_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}')
+            # utils.create_folder_if_not_exist(save_folder)
+            np.savetxt(f'{self.dissimilarity_folder}/dissimilarities_{domain}.txt', dissimilarities, fmt='%.20f')
+            print(f'{self.dissimilarity_folder}/dissimilarities_{domain}.txt')
         
-    def prepare_cal_metrics(self):
+    def prepare_cal_metrics(self, dataset_number=0):
         dirname = os.path.dirname(__file__)
-        saving_path = os.path.join(dirname, f'../metrics/metrics_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}.txt')
+        utils.create_folder_if_not_exist(os.path.join(dirname, f'../metrics'))
+        saving_path = os.path.join(dirname, f'../metrics/metrics_dataset{dataset_number}_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}.txt')
         if os.path.exists(saving_path):
             os.remove(saving_path)
+        self.metrics_path = saving_path
+
+        #create dissimilarity folder
+        dis_folder = os.path.join(dirname, f'../data/dissimilarities_dataset{dataset_number}_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}')
+
+        utils.create_folder_if_not_exist(dis_folder)
+        self.dissimilarity_folder = dis_folder
 
     def get_auc(self, breakpoints, is_plot=True):
         dirname = os.path.dirname(__file__)
         for domain in self.hyperparams.domains:
-            file_path = os.path.join(dirname, f'../data/dissimilarities_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}/dissimilarities_{domain}.txt')
+            file_path = os.path.join(self.dissimilarity_folder, f'dissimilarities_{domain}.txt')
             dissimilarities = np.loadtxt(file_path)
             tol_distances = [100, 200, 300]
             auc = utils.get_auc(dissimilarities,tol_distances, breakpoints, is_plot)
@@ -146,8 +172,7 @@ class OneDimExperiment(Experiment):
 
             # save to file 
             utils.create_folder_if_not_exist(os.path.join(dirname, f'../metrics'))
-            saving_path = os.path.join(dirname, f'../metrics/metrics_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}.txt')
-            f = open(saving_path, 'a')
+            f = open(self.metrics_path, 'a')
             f.write(f'mode: {domain}, auc: {auc}\n')
             f.close()
 
@@ -155,7 +180,7 @@ class OneDimExperiment(Experiment):
     def get_f1(self, breakpoints, is_plot=True):
         dirname = os.path.dirname(__file__)
         for domain in self.hyperparams.domains:
-            file_path = os.path.join(dirname, f'../data/dissimilarities_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}/dissimilarities_{domain}.txt')
+            file_path = os.path.join(self.dissimilarity_folder, f'dissimilarities_{domain}.txt')
             dissimilarities = np.loadtxt(file_path)
             tol_distances = [100, 200, 300]
             f1s = utils.get_F1(dissimilarities,tol_distances, breakpoints, is_plot)
@@ -163,10 +188,9 @@ class OneDimExperiment(Experiment):
             for i in range(len(tol_distances)):
                 f1max.append(max(f1s[i]))
             print(f'mode: {domain}, f1 max: {f1max}')
+            
             # save to file 
-            utils.create_folder_if_not_exist(os.path.join(dirname, f'../metrics'))
-            saving_path = os.path.join(dirname, f'../metrics/metrics_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}.txt')
-            f = open(saving_path, 'a')
+            f = open(self.metrics_path, 'a')
             f.write(f'mode: {domain}, f1 max: {f1max}\n')
             f.close()
 
