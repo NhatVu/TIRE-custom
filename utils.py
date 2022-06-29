@@ -670,7 +670,7 @@ def get_auc(distances, tol_distances, breakpoints, is_plot=True):
             legend.append("tol. dist. = "+str(i))
         auc.append(np.abs(np.trapz(tpr,x=fpr)))
 
-    print(auc)
+    # print(auc)
     if is_plot:
         plt.xlabel("FPR")
         plt.ylabel("TPR")
@@ -727,10 +727,10 @@ def get_F1(distances, tol_distances, breakpoints, is_plot=True):
         plt.legend(legend)
         plt.show()
 
-    f1max = []
-    for i in range(len(tol_distances)):
-        f1max.append(max(f1s[i]))
-    print(f'f1 max: {f1max}')
+    # f1max = []
+    # for i in range(len(tol_distances)):
+    #     f1max.append(max(f1s[i]))
+    # print(f'f1 max: {f1max}')
     return f1s
 
 def get_F1_v2(prominence, tol_distances, breakpoints, is_plot=True):

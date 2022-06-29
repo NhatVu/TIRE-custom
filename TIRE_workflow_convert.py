@@ -20,8 +20,8 @@ import TIRE
 from importlib import reload 
 
 # experiments 
-# import experiments.EEG_L2 as x # original 
-import experiments.EEG_DMD as x # Method 5: DMD, svd = 1 
+from experiments.EEG_L2 import EEG_L2_Experiment # original 
+# import experiments.EEG_DMD as x # Method 5: DMD, svd = 1 
 # import experiments.EEG_DMD_L2 as x # Method 7: DMD, svd = 3, L2 norm
 
 # setting env variable 
@@ -33,9 +33,9 @@ os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 # ipynb, mỗi lần đổi code, phải restart kernal để load lại toàn bộ. Import thì chỉ lấy từ cache, ko lấy được code mới. Lý do
 
 # %%
-workflow = x.Experiment()
+workflow = EEG_L2_Experiment()
 workflow.set_hyperparameter_type('alpha')
-workflow.hyperparams.experiment_name
+print(f'experiment name: {workflow.hyperparams.experiment_name}')
 
 # %% [markdown]
 # ## Generate data
@@ -89,6 +89,8 @@ print('Time training in minutes: ', (stop - start) / 60)
 testing_shared_features_TD, testing_shared_features_FD = workflow.predict(testing_windows_TD, testing_windows_FD)
 # post process for TD, FD and both, then save to file 
 workflow.dissimilarities_post_process(testing_shared_features_TD, testing_shared_features_FD)
+
+workflow.prepare_cal_metrics()
 
 is_plot=False
 # %%
