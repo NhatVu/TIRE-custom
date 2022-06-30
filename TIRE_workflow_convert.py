@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks, peak_prominences
 import os
 import sys
+import argparse
 
 
 import utils
@@ -23,24 +24,37 @@ from importlib import reload
 # experiments 
 # from experiments.EEG_L2 import EEG_L2_Experiment # original 
 # from experiments.EEG_DMD import EEG_DMD_Experiment # Method 5: DMD, svd = 1 
-from experiments.EEG_DMD_L2 import EEG_DMD_L2_Experiment # Method 7: DMD, svd = 3, L2 norm
+# from experiments.EEG_DMD_L2 import EEG_DMD_L2_Experiment # Method 7: DMD, svd = 3, L2 norm
+from experiments.EEG_ICA_L2 import EEG_ICA_L2_Experiment
 
+################################################
 # setting env variable 
+################################################3
 os.environ["TF_GPU_ALLOCATOR"]="cuda_malloc_async"
 os.environ["CUDA_VISIBLE_DEVICES"]="-1"    
 
+# parsing input arguments
+parser=argparse.ArgumentParser()
 
+parser.add_argument('-t', '--type', type=str, help='Hyperparameter settings type: alpha or beta', required=True)
+parser.add_argument('-d', '--datasetnumber', type=int, help='dataset number, from 1 to 8', required=True)
+
+args=parser.parse_args()
+
+hyper_type = args.type 
+dataset_number = args.datasetnumber
+print(f'hyper_type: {hyper_type}, dataset_number: {dataset_number}')
 # %%
 # ipynb, mỗi lần đổi code, phải restart kernal để load lại toàn bộ. Import thì chỉ lấy từ cache, ko lấy được code mới. Lý do
 
-workflow = EEG_DMD_L2_Experiment()
-workflow.set_hyperparameter_type('alpha')
+workflow = EEG_ICA_L2_Experiment()
+workflow.set_hyperparameter_type(hyper_type)
 print(f'experiment name: {workflow.hyperparams.experiment_name}')
 
 # ## Generate data
 
 # training
-series = int(sys.argv[1])
+series = dataset_number
 print('training')
 training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_training_data.csv')
 print('call breakpoint')
