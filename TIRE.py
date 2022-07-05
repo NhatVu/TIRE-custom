@@ -106,7 +106,13 @@ def prepare_input_paes(windows,nr_ae):
     nr_windows = windows.shape[0]
     for i in range(nr_ae):
         new_windows.append(windows[i:nr_windows-nr_ae+1+i])
-    return np.transpose(new_windows,(1,0,2))
+    
+    new_windows = np.array(new_windows)
+    new_dim = [1, 0, *range(2, len(new_windows.shape))]
+    result = np.transpose(new_windows, new_dim)
+    result = result.reshape(result.shape[0], result.shape[1], -1)
+    return result 
+    # return np.transpose(new_windows,(1,0,2))
 
 def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, loss_weight=1, nr_epochs=200, nr_patience=10, validation_data=None):
     """
@@ -125,9 +131,11 @@ def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, lo
     Returns:
         returns the TIRE encoded windows for all windows
     """
-    window_size_per_ae = windows.shape[-1]
+    # window_size_per_ae = windows.shape[-1]
     
     new_windows = prepare_input_paes(windows,nr_ae)
+    print(f'new_windows shape: {new_windows.shape}')
+    window_size_per_ae = new_windows.shape[-1]
 
     if validation_data is not None:
         print('using validation data')

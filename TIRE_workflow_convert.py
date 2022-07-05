@@ -22,10 +22,10 @@ import TIRE
 from importlib import reload 
 
 # experiments 
-# from experiments.EEG_L2 import EEG_L2_Experiment # original 
+from experiments.EEG_L2 import EEG_L2_Experiment # original 
 # from experiments.EEG_DMD import EEG_DMD_Experiment # Method 5: DMD, svd = 1 
 # from experiments.EEG_DMD_L2 import EEG_DMD_L2_Experiment # Method 7: DMD, svd = 3, L2 norm
-from experiments.EEG_ICA_L2 import EEG_ICA_L2_Experiment
+# from experiments.EEG_ICA_L2 import EEG_ICA_L2_Experiment
 
 ################################################
 # setting env variable 
@@ -47,7 +47,7 @@ print(f'hyper_type: {hyper_type}, dataset_number: {dataset_number}')
 # %%
 # ipynb, mỗi lần đổi code, phải restart kernal để load lại toàn bộ. Import thì chỉ lấy từ cache, ko lấy được code mới. Lý do
 
-workflow = EEG_ICA_L2_Experiment()
+workflow = EEG_L2_Experiment()
 workflow.set_hyperparameter_type(hyper_type)
 print(f'experiment name: {workflow.hyperparams.experiment_name}')
 

@@ -20,8 +20,8 @@ class Experiment:
         if type == 'alpha':
             config.window_size = 100
             #parameters TD
-            config.intermediate_dim_TD=0
-            config.latent_dim_TD=1 #h^TD in paper
+            config.intermediate_dim_TD=64
+            config.latent_dim_TD=4 #h^TD in paper
             config.nr_shared_TD=1 #s^TD in paper
             config.K_TD = 2 #as in paper
             config.nr_ae_TD= config.K_TD+1 #number of parallel AEs = K+1
@@ -93,8 +93,8 @@ class OneDimExperiment(Experiment):
         super().__init__()
     
     def train_autoencoder(self, windows_TD, windows_FD, validation_TD=None, validation_FD=None):
-        shared_features_TD, encoder_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=10, nr_epochs=1, validation_data=validation_TD)
-        shared_features_FD, encoder_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=10, nr_epochs=1, validation_data=validation_FD)
+        shared_features_TD, encoder_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=5, nr_epochs=100, validation_data=validation_TD)
+        shared_features_FD, encoder_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=5, nr_epochs=100, validation_data=validation_FD)
 
         self.encoder_TD = encoder_TD
         self.encoder_FD = encoder_FD

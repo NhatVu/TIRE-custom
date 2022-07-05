@@ -16,6 +16,7 @@ import experiments.utils_eeg as utils_eeg
 
 
 import utils
+from pydmd import DMD
 
 class EEG_L2_Experiment(OneDimExperiment):
     def __init__(self):
@@ -32,13 +33,22 @@ class EEG_L2_Experiment(OneDimExperiment):
 
         egg_signal_df = pd.read_csv(data_file)
         egg_signal_df.drop(['id'], axis=1, inplace=True)
+        
 
-        timeseries = np.sqrt(np.square(egg_signal_df).sum(axis=1)).to_numpy()
+        # timeseries = np.sqrt(np.square(egg_signal_df).sum(axis=1)).to_numpy()
+        timeseries = egg_signal_df.to_numpy()
+        dmd = DMD(svd_rank=3)
+        dmd.fit(timeseries)
+        timeseries = dmd.modes
         print(f'timeseries shape: {timeseries.shape}')
-
         windows_TD = utils.ts_to_windows(timeseries, 0, self.hyperparams.window_size, 1)
         windows_TD = utils.minmaxscale(windows_TD,-1,1)
-        windows_FD = utils.calc_fft(windows_TD, self.hyperparams.nfft, self.hyperparams.norm_mode)
+
+        # for windows_FD
+        timeseries_TD = np.sqrt(np.square(egg_signal_df).sum(axis=1)).to_numpy()
+        tmp_TD = utils.ts_to_windows(timeseries_TD, 0, self.hyperparams.window_size, 1)
+        tmp_TD = utils.minmaxscale(tmp_TD,-1,1)
+        windows_FD = utils.calc_fft(tmp_TD, self.hyperparams.nfft, self.hyperparams.norm_mode)
 
         return timeseries, len(timeseries), windows_TD, windows_FD
 
