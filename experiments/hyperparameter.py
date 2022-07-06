@@ -3,6 +3,7 @@ class HyperParameter:
         self.domains = ['TD', 'FD', 'both']
         self.experiment_name = 'replication'
         self.window_size = 100
+        self.tol_distances = [15]
         #parameters TD
         self.intermediate_dim_TD=0
         self.latent_dim_TD=1 #h^TD in paper

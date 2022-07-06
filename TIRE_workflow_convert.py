@@ -22,10 +22,11 @@ import TIRE
 from importlib import reload 
 
 # experiments 
-from experiments.EEG_L2 import EEG_L2_Experiment # original 
+# from experiments.EEG_L2 import EEG_L2_Experiment # original 
 # from experiments.EEG_DMD import EEG_DMD_Experiment # Method 5: DMD, svd = 1 
 # from experiments.EEG_DMD_L2 import EEG_DMD_L2_Experiment # Method 7: DMD, svd = 3, L2 norm
 # from experiments.EEG_ICA_L2 import EEG_ICA_L2_Experiment
+from experiments.Original import Original_Experiment as X
 
 ################################################
 # setting env variable 
@@ -47,7 +48,26 @@ print(f'hyper_type: {hyper_type}, dataset_number: {dataset_number}')
 # %%
 # ipynb, mỗi lần đổi code, phải restart kernal để load lại toàn bộ. Import thì chỉ lấy từ cache, ko lấy được code mới. Lý do
 
-workflow = EEG_L2_Experiment()
+seed_value= 42
+
+# 1. Set the `PYTHONHASHSEED` environment variable at a fixed value
+import os
+os.environ['PYTHONHASHSEED']=str(seed_value)
+
+# 2. Set the `python` built-in pseudo-random generator at a fixed value
+import random
+random.seed(seed_value)
+
+# 3. Set the `numpy` pseudo-random generator at a fixed value
+import numpy as np
+np.random.seed(seed_value)
+
+# 4. Set the `tensorflow` pseudo-random generator at a fixed value
+import tensorflow as tf
+tf.random.set_seed(seed_value)
+
+###############
+workflow = X()
 workflow.set_hyperparameter_type(hyper_type)
 print(f'experiment name: {workflow.hyperparams.experiment_name}')
 
@@ -55,21 +75,38 @@ print(f'experiment name: {workflow.hyperparams.experiment_name}')
 
 # training
 series = dataset_number
+# print('training')
+# training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_training_data.csv')
+# print('call breakpoint')
+# training_breakpoints = workflow.get_breakpoint(training_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_training_label.csv')
+
+# # validation
+# print('validation')
+# validation_timeseries, validation_timeseries_len, validation_windows_TD, validation_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_validation_data.csv')
+# testing_breakpoints = workflow.get_breakpoint(validation_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_validation_label.csv')
+
+
+# # testing
+# print('testing')
+# testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_testing_data.csv')
+# testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_testing_label.csv')
+
 print('training')
-training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_training_data.csv')
+training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/jumpmean-training-data.csv')
 print('call breakpoint')
-training_breakpoints = workflow.get_breakpoint(training_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_training_label.csv')
+training_breakpoints = workflow.get_breakpoint(training_timeseries_len, f'../data/jumpmean-training-label.csv')
 
 # validation
 print('validation')
-validation_timeseries, validation_timeseries_len, validation_windows_TD, validation_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_validation_data.csv')
-testing_breakpoints = workflow.get_breakpoint(validation_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_validation_label.csv')
+validation_timeseries, validation_timeseries_len, validation_windows_TD, validation_windows_FD = workflow.get_timeseries(f'../data/jumpmean-validation-data.csv')
+testing_breakpoints = workflow.get_breakpoint(validation_timeseries_len, f'../data/jumpmean-validation-label.csv')
 
 
 # testing
 print('testing')
-testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_testing_data.csv')
-testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_testing_label.csv')
+testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_FD = workflow.get_timeseries(f'../data/jumpmean-testing-data.csv')
+testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/jumpmean-testing-label.csv')
+
 
 
 # ## Train the autoencoders
@@ -85,12 +122,28 @@ print('Time training in minutes: ', (stop - start) / 60)
 # ## Postprocessing and peak detection
 workflow.prepare_cal_metrics(dataset_number=series)
 
+
+
+print('AUC and F1 for training ')
+# predict shared features on testing data 
+training_shared_features_TD, training_shared_features_FD = workflow.predict(training_windows_TD, training_windows_FD)
+# post process for TD, FD and both, then save to file 
+workflow.dissimilarities_post_process(training_shared_features_TD, training_shared_features_FD)
+is_plot=False
+print('Get auc')
+workflow.get_auc(training_breakpoints, is_plot)
+
+reload(utils)
+print('get f1')
+f1s = workflow.get_f1(training_breakpoints, is_plot)
+
+
+
+print('AUC and F1 for testing')
 # predict shared features on testing data 
 testing_shared_features_TD, testing_shared_features_FD = workflow.predict(testing_windows_TD, testing_windows_FD)
 # post process for TD, FD and both, then save to file 
 workflow.dissimilarities_post_process(testing_shared_features_TD, testing_shared_features_FD)
-
-
 is_plot=False
 print('Get auc')
 workflow.get_auc(testing_breakpoints, is_plot)
