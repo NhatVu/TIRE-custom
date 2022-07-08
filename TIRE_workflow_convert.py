@@ -48,23 +48,7 @@ print(f'hyper_type: {hyper_type}, dataset_number: {dataset_number}')
 # %%
 # ipynb, mỗi lần đổi code, phải restart kernal để load lại toàn bộ. Import thì chỉ lấy từ cache, ko lấy được code mới. Lý do
 
-seed_value= 42
-
-# 1. Set the `PYTHONHASHSEED` environment variable at a fixed value
-import os
-os.environ['PYTHONHASHSEED']=str(seed_value)
-
-# 2. Set the `python` built-in pseudo-random generator at a fixed value
-import random
-random.seed(seed_value)
-
-# 3. Set the `numpy` pseudo-random generator at a fixed value
-import numpy as np
-np.random.seed(seed_value)
-
-# 4. Set the `tensorflow` pseudo-random generator at a fixed value
-import tensorflow as tf
-tf.random.set_seed(seed_value)
+utils.setup_random_seed()
 
 ###############
 workflow = X()
@@ -92,20 +76,20 @@ series = dataset_number
 # testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_testing_label.csv')
 
 print('training')
-training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/jumpmean-training-data.csv')
+training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/jumpmean/jumpmean-dataset{dataset_number}-training-data.csv')
 print('call breakpoint')
-training_breakpoints = workflow.get_breakpoint(training_timeseries_len, f'../data/jumpmean-training-label.csv')
+training_breakpoints = workflow.get_breakpoint(training_timeseries_len, f'../data/jumpmean/jumpmean-dataset{dataset_number}-training-label.csv')
 
 # validation
 print('validation')
-validation_timeseries, validation_timeseries_len, validation_windows_TD, validation_windows_FD = workflow.get_timeseries(f'../data/jumpmean-validation-data.csv')
-testing_breakpoints = workflow.get_breakpoint(validation_timeseries_len, f'../data/jumpmean-validation-label.csv')
+validation_timeseries, validation_timeseries_len, validation_windows_TD, validation_windows_FD = workflow.get_timeseries(f'../data/jumpmean/jumpmean-dataset{dataset_number}-validation-data.csv')
+testing_breakpoints = workflow.get_breakpoint(validation_timeseries_len, f'../data/jumpmean/jumpmean-dataset{dataset_number}-validation-label.csv')
 
 
 # testing
 print('testing')
-testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_FD = workflow.get_timeseries(f'../data/jumpmean-testing-data.csv')
-testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/jumpmean-testing-label.csv')
+testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_FD = workflow.get_timeseries(f'../data/jumpmean/jumpmean-dataset{dataset_number}-testing-data.csv')
+testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/jumpmean/jumpmean-dataset{dataset_number}-testing-label.csv')
 
 
 
@@ -131,6 +115,9 @@ training_shared_features_TD, training_shared_features_FD = workflow.predict(trai
 workflow.dissimilarities_post_process(training_shared_features_TD, training_shared_features_FD)
 is_plot=False
 print('Get auc')
+f = open(workflow.metrics_path, 'a')
+f.write('Training score\n\n')
+f.close()
 workflow.get_auc(training_breakpoints, is_plot)
 
 reload(utils)
@@ -146,6 +133,9 @@ testing_shared_features_TD, testing_shared_features_FD = workflow.predict(testin
 workflow.dissimilarities_post_process(testing_shared_features_TD, testing_shared_features_FD)
 is_plot=False
 print('Get auc')
+f = open(workflow.metrics_path, 'a')
+f.write('\nTesting score\n\n')
+f.close()
 workflow.get_auc(testing_breakpoints, is_plot)
 
 reload(utils)

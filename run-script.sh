@@ -1,0 +1,10 @@
+python TIRE_workflow_convert.py -t alpha -d 1
+python TIRE_workflow_convert.py -t alpha -d 2
+python TIRE_workflow_convert.py -t alpha -d 3
+python TIRE_workflow_convert.py -t alpha -d 4
+python TIRE_workflow_convert.py -t alpha -d 5
+python TIRE_workflow_convert.py -t alpha -d 6
+python TIRE_workflow_convert.py -t alpha -d 7
+python TIRE_workflow_convert.py -t alpha -d 8
+python TIRE_workflow_convert.py -t alpha -d 9
+python TIRE_workflow_convert.py -t alpha -d 10

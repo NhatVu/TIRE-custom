@@ -870,3 +870,23 @@ def create_prominence_from_multi_channels(num_channels:int, dissimilarities, win
         # update i
         i += window_size
     return new_distance
+
+
+def setup_random_seed():
+    seed_value= 42
+
+    # 1. Set the `PYTHONHASHSEED` environment variable at a fixed value
+    import os
+    os.environ['PYTHONHASHSEED']=str(seed_value)
+
+    # 2. Set the `python` built-in pseudo-random generator at a fixed value
+    import random
+    random.seed(seed_value)
+
+    # 3. Set the `numpy` pseudo-random generator at a fixed value
+    import numpy as np
+    np.random.seed(seed_value)
+
+    # 4. Set the `tensorflow` pseudo-random generator at a fixed value
+    import tensorflow as tf
+    tf.random.set_seed(seed_value)

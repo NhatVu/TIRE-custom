@@ -32,22 +32,30 @@ class Original_Experiment(OneDimExperiment):
         data_file = os.path.join(dirname, file_path)
 
         signal_df = pd.read_csv(data_file)
+        print(f'signal_df shape: {signal_df.shape}')
         
 
         # timeseries = np.sqrt(np.square(signal_df).sum(axis=1)).to_numpy()
-        timeseries = signal_df['col_0'].to_numpy()
+
+        # timeseries = signal_df['col_0'].to_numpy()
         # timeseries = egg_signal_df.to_numpy()
         # dmd = DMD(svd_rank=3)
         # dmd.fit(timeseries)
         # timeseries = dmd.modes
-        print(f'timeseries shape: {timeseries.shape}')
+
+        timeseries = signal_df.to_numpy() # have to use copy(). It's seem the internal np array has changed somewhere
         windows_TD = utils.ts_to_windows(timeseries, 0, self.hyperparams.window_size, 1)
         windows_TD = utils.minmaxscale(windows_TD,-1,1)
+        print(f'timeseries shape: {timeseries.shape}, windows_TD shape: {windows_TD.shape}')
+
 
         # for windows_FD
-        # timeseries_TD = np.sqrt(np.square(signal_df).sum(axis=1)).to_numpy()
-        timeseries_TD = signal_df['col_0'].to_numpy()
-        tmp_TD = utils.ts_to_windows(timeseries_TD, 0, self.hyperparams.window_size, 1)
+        # signal_df = pd.read_csv(data_file)
+        timeseries_tmp = np.sqrt(np.square(signal_df).sum(axis=1)).to_numpy()
+
+        # assert len(timeseries) == len(timeseries_tmp)
+        # timeseries_tmp = signal_df['col_0'].to_numpy()
+        tmp_TD = utils.ts_to_windows(timeseries_tmp, 0, self.hyperparams.window_size, 1)
         tmp_TD = utils.minmaxscale(tmp_TD,-1,1)
         windows_FD = utils.calc_fft(tmp_TD, self.hyperparams.nfft, self.hyperparams.norm_mode)
 

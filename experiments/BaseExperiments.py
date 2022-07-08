@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from experiments.hyperparameter import HyperParameter
-
+import tensorflow as tf 
 import utils
 import TIRE
 # from pydmd import DMD
@@ -15,15 +15,17 @@ class Experiment:
     def set_hyperparameter_type(self, type:str):
         config = HyperParameter()
         config.domains = ['TD', 'FD', 'both']
+        
         config.experiment_name = 'Unknown'
         config.type_setting = type
         if type == 'alpha':
             config.window_size = 20
             config.tol_distances = [15]
             #parameters TD
-            config.intermediate_dim_TD=0
-            config.latent_dim_TD=1 #h^TD in paper
-            config.nr_shared_TD=1 #s^TD in paper
+            # (8, 2), (16, 3)
+            config.intermediate_dim_TD=16
+            config.latent_dim_TD=3 #h^TD in paper
+            config.nr_shared_TD=3 #s^TD in paper
             config.K_TD = 2 #as in paper
             config.nr_ae_TD= config.K_TD+1 #number of parallel AEs = K+1
             config.loss_weight_TD=1 #lambda_TD in paper
@@ -38,8 +40,7 @@ class Experiment:
             config.nfft = 30 #number of points for DFT
             config.norm_mode = "timeseries" #for calculation of DFT, should the timeseries have mean zero or each window?
         elif type == 'beta':
-            config.window_size = 20
-            config.tol_distances = [15]
+            config.window_size = 100
             #parameters TD
             config.intermediate_dim_TD=0
             config.latent_dim_TD=3 #h^TD in paper
@@ -95,7 +96,11 @@ class OneDimExperiment(Experiment):
         super().__init__()
     
     def train_autoencoder(self, windows_TD, windows_FD, validation_TD=None, validation_FD=None):
-        shared_features_TD, encoder_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=5, nr_epochs=200, validation_data=validation_TD)
+    
+        utils.setup_random_seed()
+        shared_features_TD, encoder_TD = TIRE.train_AE(windows_TD, self.hyperparams.intermediate_dim_TD, self.hyperparams.latent_dim_TD, self.hyperparams.nr_shared_TD, self.hyperparams.nr_ae_TD, self.hyperparams.loss_weight_TD, nr_patience=5, nr_epochs=200, validation_data=validation_TD) 
+
+        utils.setup_random_seed()
         shared_features_FD, encoder_FD = TIRE.train_AE(windows_FD, self.hyperparams.intermediate_dim_FD, self.hyperparams.latent_dim_FD, self.hyperparams.nr_shared_FD, self.hyperparams.nr_ae_FD, self.hyperparams.loss_weight_FD, nr_patience=5, nr_epochs=200, validation_data=validation_FD)
 
         self.encoder_TD = encoder_TD
