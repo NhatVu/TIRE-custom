@@ -18,14 +18,14 @@ class Experiment:
         
         config.experiment_name = 'Unknown'
         config.type_setting = type
+        config.tol_distances = [300]
         if type == 'alpha':
-            config.window_size = 20
-            config.tol_distances = [15]
+            config.window_size = 100
             #parameters TD
             # (8, 2), (16, 3)
-            config.intermediate_dim_TD=16
-            config.latent_dim_TD=3 #h^TD in paper
-            config.nr_shared_TD=3 #s^TD in paper
+            config.intermediate_dim_TD=0
+            config.latent_dim_TD=1 #h^TD in paper
+            config.nr_shared_TD=1 #s^TD in paper
             config.K_TD = 2 #as in paper
             config.nr_ae_TD= config.K_TD+1 #number of parallel AEs = K+1
             config.loss_weight_TD=1 #lambda_TD in paper

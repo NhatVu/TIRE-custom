@@ -37,7 +37,7 @@ class EEG_DMD_Experiment(OneDimExperiment):
         egg_signal_df = pd.read_csv(data_file)
         egg_signal_df.drop(['id'], axis=1, inplace=True)
 
-        dmd = DMD(svd_rank=1)
+        dmd = DMD(svd_rank=1, opt=True)
         dmd.fit(egg_signal_df.to_numpy())
 
         timeseries = dmd.modes.T[0].real

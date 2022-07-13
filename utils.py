@@ -5,6 +5,7 @@ from tensorflow.keras.layers import Lambda, Input, Dense
 from tensorflow.keras.models import Model
 
 import numpy as np
+import pandas as pd 
 import random
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks, peak_prominences
@@ -890,3 +891,15 @@ def setup_random_seed():
     # 4. Set the `tensorflow` pseudo-random generator at a fixed value
     import tensorflow as tf
     tf.random.set_seed(seed_value)
+
+def plot_channels(raw_df: pd.DataFrame, column_data_str: str, labels: np.array):
+    f, ax = plt.subplots(len(column_data_str), 1, figsize=(30, 4 * len(column_data_str)), squeeze=False)
+    f.tight_layout(pad=2)
+    timeseries_len = raw_df.shape[0]
+    for index, column_name in enumerate(column_data_str):
+        ax[index, 0].plot(range(timeseries_len), raw_df[column_name])
+        ax[index, 0].set_title(f"channel: {column_name}", fontsize=20)
+
+        height_line = 1
+        ax[index, 0].fill_between(range(timeseries_len), 0, height_line, where=labels > 0, color='red', alpha=0.2, transform=ax[index, 0].get_xaxis_transform())
+    plt.show()
