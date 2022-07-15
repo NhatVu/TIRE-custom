@@ -24,7 +24,7 @@ class Original_Experiment(OneDimExperiment):
     
     def set_hyperparameter_type(self, type:str):
         super().set_hyperparameter_type(type)
-        self.hyperparams.experiment_name = 'original'
+        self.hyperparams.experiment_name = 'original_dmd'
         
     def get_timeseries(self, file_path = '../data/eeg_subj1_series1_data.csv'):
         # load hasc data 
@@ -35,15 +35,11 @@ class Original_Experiment(OneDimExperiment):
         print(f'signal_df shape: {signal_df.shape}')
         
 
-        # timeseries = np.sqrt(np.square(signal_df).sum(axis=1)).to_numpy()
+        timeseries = signal_df.to_numpy()
+        dmd = DMD(svd_rank=1)
+        dmd.fit(timeseries)
+        timeseries = dmd.modes.T[0].real
 
-        # timeseries = signal_df['col_0'].to_numpy()
-        # timeseries = egg_signal_df.to_numpy()
-        # dmd = DMD(svd_rank=3)
-        # dmd.fit(timeseries)
-        # timeseries = dmd.modes
-
-        timeseries = signal_df.to_numpy() # have to use copy(). It's seem the internal np array has changed somewhere
         windows_TD = utils.ts_to_windows(timeseries, 0, self.hyperparams.window_size, 1)
         windows_TD = utils.minmaxscale(windows_TD,-1,1)
         print(f'timeseries shape: {timeseries.shape}, windows_TD shape: {windows_TD.shape}')
@@ -51,10 +47,7 @@ class Original_Experiment(OneDimExperiment):
 
         # for windows_FD
         # signal_df = pd.read_csv(data_file)
-        timeseries_tmp = np.sqrt(np.square(signal_df).sum(axis=1)).to_numpy()
-
-        # assert len(timeseries) == len(timeseries_tmp)
-        # timeseries_tmp = signal_df['col_0'].to_numpy()
+        timeseries_tmp = timeseries
         tmp_TD = utils.ts_to_windows(timeseries_tmp, 0, self.hyperparams.window_size, 1)
         tmp_TD = utils.minmaxscale(tmp_TD,-1,1)
         windows_FD = utils.calc_fft(tmp_TD, self.hyperparams.nfft, self.hyperparams.norm_mode)

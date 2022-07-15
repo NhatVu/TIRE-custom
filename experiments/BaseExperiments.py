@@ -15,12 +15,12 @@ class Experiment:
     def set_hyperparameter_type(self, type:str):
         config = HyperParameter()
         config.domains = ['TD', 'FD', 'both']
-        
+        # We set N = 20 and δ = 15 for JM, SC and GM;
         config.experiment_name = 'Unknown'
         config.type_setting = type
-        config.tol_distances = [300]
+        config.tol_distances = [15]
         if type == 'alpha':
-            config.window_size = 100
+            config.window_size = 20
             #parameters TD
             # (8, 2), (16, 3)
             config.intermediate_dim_TD=0
@@ -154,16 +154,18 @@ class OneDimExperiment(Experiment):
             np.savetxt(f'{self.dissimilarity_folder}/dissimilarities_{domain}.txt', dissimilarities, fmt='%.20f')
             print(f'{self.dissimilarity_folder}/dissimilarities_{domain}.txt')
         
-    def prepare_cal_metrics(self, dataset_number=0):
+    def prepare_cal_metrics(self, dataset_number=0, dataset_name='Unknown'):
         dirname = os.path.dirname(__file__)
-        utils.create_folder_if_not_exist(os.path.join(dirname, f'../metrics'))
-        saving_path = os.path.join(dirname, f'../metrics/metrics_dataset{dataset_number}_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}.txt')
+        metrics_folder_prefix = f'../metrics/{dataset_name}/{self.hyperparams.experiment_name}'
+        utils.create_folder_if_not_exist(os.path.join(dirname, metrics_folder_prefix))
+        saving_path = os.path.join(dirname, f'{metrics_folder_prefix}/metrics_dataset{dataset_number}_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}.txt')
+
         if os.path.exists(saving_path):
             os.remove(saving_path)
         self.metrics_path = saving_path
 
         #create dissimilarity folder
-        dis_folder = os.path.join(dirname, f'../data/dissimilarities_dataset{dataset_number}_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}')
+        dis_folder = os.path.join(dirname, f'../data/{dataset_name}/{self.hyperparams.experiment_name}/dissimilarities_dataset{dataset_number}_{self.hyperparams.experiment_name}_{self.hyperparams.type_setting}')
 
         utils.create_folder_if_not_exist(dis_folder)
         self.dissimilarity_folder = dis_folder
@@ -178,7 +180,7 @@ class OneDimExperiment(Experiment):
             print(f'mode: {domain}, auc: {auc}')
 
             # save to file 
-            utils.create_folder_if_not_exist(os.path.join(dirname, f'../metrics'))
+            # utils.create_folder_if_not_exist(os.path.join(dirname, f'../metrics'))
             f = open(self.metrics_path, 'a')
             f.write(f'mode: {domain}, auc: {auc}\n')
             f.close()

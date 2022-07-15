@@ -22,13 +22,13 @@ import TIRE
 from importlib import reload 
 
 # experiments 
-# from experiments.EEG_L2 import EEG_L2_Experiment # original 
+# from experiments.EEG_L2 import EEG_L2_Experiment as X # original 
 # from experiments.EEG_DMD import EEG_DMD_Experiment as X # Method 5: DMD, svd = 1 
 # from experiments.EEG_DMD_L2 import EEG_DMD_L2_Experiment # Method 7: DMD, svd = 3, L2 norm
-from experiments.EEG_ICA_L2 import EEG_ICA_L2_Experiment as X # method 2
-# from experiments.Original import Original_Experiment as X
-# from experiments.ICA_L2 import ICA_L2_Experiment as X
-# from experiments.DMD import DMD_Experiment as X 
+# from experiments.EEG_ICA_L2 import EEG_ICA_L2_Experiment as X # method 2
+from experiments.Original_L2 import Original_Experiment as X
+# from experiments.Original_channel_0 import Original_Experiment as X
+from experiments.Original_DMD import Original_Experiment as X 
 
 ################################################
 # setting env variable 
@@ -60,38 +60,40 @@ print(f'experiment name: {workflow.hyperparams.experiment_name}')
 # ## Generate data
 
 # training
-series = dataset_number
-print('training')
-training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_training_data.csv')
-print('call breakpoint')
-training_breakpoints = workflow.get_breakpoint(training_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_training_label.csv')
-
-# validation
-print('validation')
-validation_timeseries, validation_timeseries_len, validation_windows_TD, validation_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_validation_data.csv')
-testing_breakpoints = workflow.get_breakpoint(validation_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_validation_label.csv')
-
-
-# testing
-print('testing')
-testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_testing_data.csv')
-testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_testing_label.csv')
-
+# series = dataset_number
 # print('training')
-# training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/jumpmean/jumpmean-dataset{dataset_number}-training-data.csv')
+# training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_training_data.csv')
 # print('call breakpoint')
-# training_breakpoints = workflow.get_breakpoint(training_timeseries_len, f'../data/jumpmean/jumpmean-dataset{dataset_number}-training-label.csv')
+# training_breakpoints = workflow.get_breakpoint(training_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_training_label.csv')
 
 # # validation
 # print('validation')
-# validation_timeseries, validation_timeseries_len, validation_windows_TD, validation_windows_FD = workflow.get_timeseries(f'../data/jumpmean/jumpmean-dataset{dataset_number}-validation-data.csv')
-# testing_breakpoints = workflow.get_breakpoint(validation_timeseries_len, f'../data/jumpmean/jumpmean-dataset{dataset_number}-validation-label.csv')
+# validation_timeseries, validation_timeseries_len, validation_windows_TD, validation_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_validation_data.csv')
+# testing_breakpoints = workflow.get_breakpoint(validation_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_validation_label.csv')
 
 
 # # testing
 # print('testing')
-# testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_FD = workflow.get_timeseries(f'../data/jumpmean/jumpmean-dataset{dataset_number}-testing-data.csv')
-# testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/jumpmean/jumpmean-dataset{dataset_number}-testing-label.csv')
+# testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_FD = workflow.get_timeseries(f'../data/eeg_grasp_and_lift/dataset{series}_testing_data.csv')
+# testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_testing_label.csv')
+
+print('training')
+dataset_name = 'jumpmean-gauss'
+folder_prefix = f'../data-gen/{dataset_name}/{dataset_name}'
+training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'{folder_prefix}-dataset{dataset_number}-training-data.csv')
+print('call breakpoint')
+training_breakpoints = workflow.get_breakpoint(training_timeseries_len, f'{folder_prefix}-dataset{dataset_number}-training-label.csv')
+
+# validation
+print('validation')
+validation_timeseries, validation_timeseries_len, validation_windows_TD, validation_windows_FD = workflow.get_timeseries(f'{folder_prefix}-dataset{dataset_number}-validation-data.csv')
+testing_breakpoints = workflow.get_breakpoint(validation_timeseries_len, f'{folder_prefix}-dataset{dataset_number}-validation-label.csv')
+
+
+# testing
+print('testing')
+testing_timeseries, testing_timeseries_len, testing_windows_TD, testing_windows_FD = workflow.get_timeseries(f'{folder_prefix}-dataset{dataset_number}-testing-data.csv')
+testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'{folder_prefix}-dataset{dataset_number}-testing-label.csv')
 
 
 
@@ -106,7 +108,7 @@ stop = timeit.default_timer()
 print('Time training in minutes: ', (stop - start) / 60) 
 
 # ## Postprocessing and peak detection
-workflow.prepare_cal_metrics(dataset_number=series)
+workflow.prepare_cal_metrics(dataset_number=dataset_number, dataset_name=dataset_name)
 
 
 

@@ -132,7 +132,7 @@ def train_AE(windows, intermediate_dim=0, latent_dim=1, nr_shared=1, nr_ae=3, lo
         returns the TIRE encoded windows for all windows
     """
     # window_size_per_ae = windows.shape[-1]
-    
+    print(f'window shape: {windows.shape}')
     new_windows = prepare_input_paes(windows,nr_ae)
     print(f'new_windows shape: {new_windows.shape}')
     window_size_per_ae = new_windows.shape[-1]
