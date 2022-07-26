@@ -175,6 +175,14 @@ class OneDimExperiment(Experiment):
         for domain in self.hyperparams.domains:
             file_path = os.path.join(self.dissimilarity_folder, f'dissimilarities_{domain}.txt')
             dissimilarities = np.loadtxt(file_path)
+            # if dissimilarities is nan
+            if np.isnan(dissimilarities).all() or dissimilarities.sum() == 0: 
+                print(f'mode: {domain} contain only nan or 0 value')
+                f = open(self.metrics_path, 'a')
+                f.write(f'mode: {domain} contain only nan or 0 value\n')
+                f.close()
+                continue
+
             tol_distances = self.hyperparams.tol_distances
             auc = utils.get_auc(dissimilarities,tol_distances, breakpoints, is_plot)
             print(f'mode: {domain}, auc: {auc}')
@@ -191,6 +199,14 @@ class OneDimExperiment(Experiment):
         for domain in self.hyperparams.domains:
             file_path = os.path.join(self.dissimilarity_folder, f'dissimilarities_{domain}.txt')
             dissimilarities = np.loadtxt(file_path)
+            # if dissimilarities is nan
+            if np.isnan(dissimilarities).all() or dissimilarities.sum() == 0: 
+                print(f'mode: {domain} contain only nan or 0 value')
+                f = open(self.metrics_path, 'a')
+                f.write(f'mode: {domain} contain only nan or 0 value\n')
+                f.close()
+                continue
+
             tol_distances = self.hyperparams.tol_distances
             f1s = utils.get_F1(dissimilarities,tol_distances, breakpoints, is_plot)
             f1max = []

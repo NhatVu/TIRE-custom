@@ -26,7 +26,7 @@ class Original_Experiment(OneDimExperiment):
         super().set_hyperparameter_type(type)
         self.hyperparams.experiment_name = 'original_l2'
         
-    def get_timeseries(self, file_path = '../data/eeg_subj1_series1_data.csv'):
+    def get_timeseries(self, file_path: str):
         # load hasc data 
         dirname = os.path.dirname(__file__)
         data_file = os.path.join(dirname, file_path)
@@ -51,7 +51,7 @@ class Original_Experiment(OneDimExperiment):
 
         return timeseries, len(timeseries), windows_TD, windows_FD
 
-    def get_breakpoint(self, timeseries_len:int, file_path = '../data/eeg_subj1_series1_events.csv'):
+    def get_breakpoint(self, timeseries_len:int, file_path: str):
         dirname = os.path.dirname(__file__)
         breakpoints_index_file = os.path.join(dirname, file_path)
 

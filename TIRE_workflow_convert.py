@@ -26,9 +26,10 @@ from importlib import reload
 # from experiments.EEG_DMD import EEG_DMD_Experiment as X # Method 5: DMD, svd = 1 
 # from experiments.EEG_DMD_L2 import EEG_DMD_L2_Experiment # Method 7: DMD, svd = 3, L2 norm
 # from experiments.EEG_ICA_L2 import EEG_ICA_L2_Experiment as X # method 2
-from experiments.Original_L2 import Original_Experiment as X
+# from experiments.Original_L2 import Original_Experiment as X
 # from experiments.Original_channel_0 import Original_Experiment as X
 from experiments.Original_DMD import Original_Experiment as X 
+# from experiments.EEG_ICA_DMD import EEG_ICA_DMD_Experiment as X
 
 ################################################
 # setting env variable 
@@ -78,7 +79,7 @@ print(f'experiment name: {workflow.hyperparams.experiment_name}')
 # testing_breakpoints = workflow.get_breakpoint(testing_timeseries_len, f'../data/eeg_grasp_and_lift/dataset{series}_testing_label.csv')
 
 print('training')
-dataset_name = 'jumpmean-gauss'
+dataset_name = 'gauss-5-noise'
 folder_prefix = f'../data-gen/{dataset_name}/{dataset_name}'
 training_timeseries, training_timeseries_len, training_windows_TD, training_windows_FD = workflow.get_timeseries(f'{folder_prefix}-dataset{dataset_number}-training-data.csv')
 print('call breakpoint')

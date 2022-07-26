@@ -154,6 +154,10 @@ def tpr_fpr(bps,distances, method="prominence",tol_dist=0):
     peaks = find_peaks(distances)[0]
     peaks_prom = peak_prominences(distances,peaks)[0]
 
+    # if there is no peak
+    if len(peaks_prom) == 0:
+        return [np.nan], [np.nan]
+
     peaks_prom_all = np.array(new_peak_prominences(distances)[0])
     
     distances = np.array(distances)
@@ -349,6 +353,9 @@ def precision_recall_f1(bps,distances, method="prominence",tol_dist=0):
     
     peaks = find_peaks(distances)[0]
     peaks_prom = peak_prominences(distances,peaks)[0]
+    # if there is no peak
+    if len(peaks_prom) == 0:
+        return [np.nan], [np.nan], [np.nan], [np.nan]
 
     peaks_prom_all = np.array(new_peak_prominences(distances)[0])
 
@@ -412,8 +419,8 @@ def precision_recall_f1(bps,distances, method="prominence",tol_dist=0):
         
         ngt = nr_bps
         
-        precision = ncr/ngt
-        recall = ncr/nal
+        recall = ncr/ngt
+        precision = ncr/nal
         # print(f'precision: {precision}')
         # print(f'recall: {recall}')
         f1 = 2 * precision * recall / (precision + recall)
